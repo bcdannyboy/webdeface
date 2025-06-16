@@ -1,0 +1,34 @@
+global:
+  default_interval: "*/15 * * * *"   # Every 15 minutes
+  keep_scans: 20
+  alert:
+    site_down:
+      channels: ["#noc"]
+      users: []
+    benign_change:
+      channels: []
+      users: []
+    defacement:
+      channels: ["#sec-ops"]
+      users: ["@security-team"]
+
+sites:
+  - url: "https://example.com"
+    name: "Example Site"
+    interval: "0,30 * * * *"  # Every 30 minutes
+    depth: 2
+    enabled: true
+  - url: "https://critical-site.com"
+    name: "Critical Site"
+    interval: "*/5 * * * *"   # Every 5 minutes
+    depth: 1
+    enabled: true
+
+scraping:
+  default_timeout: 10000  # 10 seconds
+  max_retries: 3
+  max_depth: 3
+  user_agents:
+    - "Mozilla/5.0 (compatible; WebDefaceMonitor/1.0)"
+    - "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    - "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
