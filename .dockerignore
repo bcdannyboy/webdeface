@@ -1,0 +1,138 @@
+# Python cache and artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.env/
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.virtualenv
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.metadata
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Environment files (contain secrets)
+.env
+.env.local
+.env.production
+.env.development
+*.env
+
+# Configuration files with secrets
+config.yaml
+config.yml
+
+# Testing
+.pytest_cache/
+.coverage
+.nyc_output
+htmlcov/
+.tox/
+coverage.xml
+*.cover
+.hypothesis/
+tests/
+pytest.ini
+
+# Documentation
+docs/
+*.md
+README*
+CHANGELOG*
+LICENSE*
+
+# Temporary files
+.tmp/
+.temp/
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Docker files (avoid recursive copy)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Development tools
+.pre-commit-config.yaml
+.flake8
+.mypy_cache/
+.ruff_cache/
+.black
+pyproject.toml  # We copy this explicitly in Dockerfile
+
+# Node.js (if any frontend assets)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Data and runtime files
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Backup files
+*.bak
+*.backup
+*.orig
+
+# Jupyter notebooks
+.ipynb_checkpoints/
+
+# Misc
+.cache/
+.sass-cache/
+*.tar.gz
+*.zip
+*.rar
