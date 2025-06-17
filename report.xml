@@ -1,4 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="395.580" timestamp="2025-06-16T09:56:23.083284-07:00" hostname="Daniels-MacBook-Pro.local"><testcase classname="tests.test_api_interface.TestAuthenticationAPI" name="test_token_verification" time="0.001"><failure message="AssertionError: assert False is True&#10; +  where False = verify_api_token('test-token-123')">tests/test_api_interface.py:127: in test_token_verification
-    assert verify_api_token("test-token-123") is True
-E   AssertionError: assert False is True
-E    +  where False = verify_api_token('test-token-123')</failure></testcase></testsuite></testsuites>

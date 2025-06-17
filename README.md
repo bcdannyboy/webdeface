@@ -1,9 +1,5 @@
 # Web Defacement Monitor
 
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-
 **AI-Powered Web Defacement Detection and Alerting System**
 
 A sophisticated monitoring system that detects, classifies, and alerts on website content modifications using advanced AI classification, vector similarity analysis, and real-time Slack-based team collaboration.
@@ -735,50 +731,4 @@ ls -la ./data/
 rm ./data/webdeface.db
 webdeface-monitor system status
 ```
-
-### Getting Help
-
-- **📖 Documentation**: [docs/](docs/)
-- **🐛 Issues**: [GitHub Issues](https://github.com/your-org/webdeface-monitor/issues)
-- **💬 Discussions**: [GitHub Discussions](https://github.com/your-org/webdeface-monitor/discussions)
-- **📧 Email**: support@your-org.com
-
 See [Troubleshooting Guide](docs/TROUBLESHOOTING.md) for comprehensive help.
-
-## 🎯 Roadmap
-
-### Version 1.1 (Q2 2024)
-- [ ] **Multi-Protocol Support** - FTP, SSH, API endpoint monitoring
-- [ ] **Advanced Analytics** - Trend analysis and predictive alerts
-- [ ] **Plugin System** - Custom detection rules and integrations
-- [ ] **High Availability** - Multi-node clustering support
-
-### Version 1.2 (Q3 2024)
-- [ ] **Visual Diff Detection** - Screenshot-based change detection
-- [ ] **Mobile App** - iOS/Android monitoring dashboard
-- [ ] **Enterprise SSO** - SAML/OIDC authentication
-- [ ] **Compliance Reporting** - SOC2, ISO27001 audit trails
-
-### Version 2.0 (Q4 2024)
-- [ ] **Machine Learning** - Custom classification models
-- [ ] **Global Distribution** - Edge monitoring infrastructure
-- [ ] **Real-time Streaming** - WebSocket-based live monitoring
-- [ ] **Advanced Integrations** - SIEM, SOAR, and ticketing systems
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **Anthropic** - Claude AI for intelligent content classification
-- **Microsoft** - Playwright for reliable web automation
-- **Qdrant** - Vector database for semantic analysis
-- **Slack** - Real-time notification platform
-- **FastAPI** - High-performance API framework
-
----
-
-**Built with ❤️ by the Security Engineering Team**
-
-For more information, visit our [documentation](docs/) or [contact us](mailto:support@your-org.com).
