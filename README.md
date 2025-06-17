@@ -662,7 +662,7 @@ uvicorn src.webdeface.main:app --reload --host 0.0.0.0 --port 8000
 ```bash
 # See comprehensive testing documentation above
 # Quick reference:
-pytest                    # Full test suite (81% success rate)
+pytest                    # Full test suite
 pytest -v                # Verbose output
 pytest --cov=src/webdeface --cov-report=html  # Coverage report
 ```
