@@ -329,3 +329,7 @@ class WebsiteHandler(BaseSlackHandler, AsyncCommandMixin):
                 message=f"Failed to get website status: {str(e)}",
                 exit_code=1,
             )
+
+
+# Export the handler class
+__all__ = ["WebsiteHandler"]

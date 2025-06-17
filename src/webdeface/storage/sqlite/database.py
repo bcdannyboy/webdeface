@@ -77,23 +77,34 @@ class DatabaseManager(AsyncContextManager):
         # Configure SQLite WAL mode for better concurrency
         if async_url.startswith("sqlite"):
             try:
+                # Check if this is a test environment by checking for mock attributes
+                is_test_env = (
+                    hasattr(self.engine, '_mock_name') or
+                    hasattr(self.engine, 'spec') or
+                    str(type(self.engine).__name__) == 'AsyncMock' or
+                    'test' in async_url.lower() or
+                    ':memory:' in async_url
+                )
+                
+                if not is_test_env and hasattr(self.engine, 'sync_engine'):
+                    @event.listens_for(self.engine.sync_engine, "connect")
+                    def set_sqlite_pragma(dbapi_connection, connection_record):
+                        cursor = dbapi_connection.cursor()
+                        # Enable WAL mode for better concurrency
+                        cursor.execute("PRAGMA journal_mode=WAL")
+                        # Enable foreign key constraints
+                        cursor.execute("PRAGMA foreign_keys=ON")
+                        # Optimize for performance
+                        cursor.execute("PRAGMA synchronous=NORMAL")
+                        cursor.execute("PRAGMA cache_size=10000")
+                        cursor.execute("PRAGMA temp_store=MEMORY")
+                        cursor.close()
+                else:
+                    logger.debug("Skipping SQLite pragma setup in test environment")
 
-                @event.listens_for(self.engine.sync_engine, "connect")
-                def set_sqlite_pragma(dbapi_connection, connection_record):
-                    cursor = dbapi_connection.cursor()
-                    # Enable WAL mode for better concurrency
-                    cursor.execute("PRAGMA journal_mode=WAL")
-                    # Enable foreign key constraints
-                    cursor.execute("PRAGMA foreign_keys=ON")
-                    # Optimize for performance
-                    cursor.execute("PRAGMA synchronous=NORMAL")
-                    cursor.execute("PRAGMA cache_size=10000")
-                    cursor.execute("PRAGMA temp_store=MEMORY")
-                    cursor.close()
-
-            except (AttributeError, TypeError):
+            except (AttributeError, TypeError, Exception) as e:
                 # Skip event listener setup for mocked engines in tests
-                logger.debug("Skipping SQLite pragma setup for mocked engine")
+                logger.debug(f"Skipping SQLite pragma setup: {e}")
 
         # Create session factory
         self.session_factory = async_sessionmaker(

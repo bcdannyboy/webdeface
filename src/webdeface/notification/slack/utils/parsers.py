@@ -33,12 +33,14 @@ class SlackCommandParser:
     """Parses Slack command text into CLI-compatible arguments and flags."""
 
     def __init__(self):
-        # Pattern to match key:value flags in Slack commands
-        self.flag_pattern = re.compile(r'(\w+):([\w\-_./:]+|"[^"]*")')
+        # Pattern to match key:value flags in Slack commands (but not URLs)
+        # Excludes patterns where colon is followed by //
+        # Updated to handle hyphenated flag names and special characters in values
+        self.flag_pattern = re.compile(r'\b([\w\-]+):(?!//)([\w\-_./:@#%&+=]+|"[^"]*")')
         # Pattern to match quoted arguments
         self.quoted_pattern = re.compile(r'"([^"]*)"')
 
-    def parse_command(self, text: str) -> ParseResult:
+    async def parse_command(self, text: str) -> ParseResult:
         """
         Parse Slack command text into CLI-compatible arguments and flags.
 
@@ -88,9 +90,7 @@ class SlackCommandParser:
                 success=False, error_message=f"Failed to parse command: {str(e)}"
             )
 
-    def parse_command_sync(
-        self, text: str
-    ) -> tuple[list[str], dict[str, Any], dict[str, Any]]:
+    def parse_command_sync(self, text: str) -> tuple[list[str], dict[str, Any], dict[str, Any]]:
         """
         Synchronous version of parse_command for backward compatibility.
 
@@ -98,32 +98,39 @@ class SlackCommandParser:
             text: Slack command text (e.g., "website add https://example.com name:MyWebsite")
 
         Returns:
-            Tuple of (subcommands, args, flags)
-            - subcommands: List of command parts (e.g., ["website", "add"])
-            - args: Dict of positional arguments by position
-            - flags: Dict of flag key-value pairs
+            Tuple of (subcommands, args, flags) for backward compatibility
         """
-        if not text or not text.strip():
+        try:
+            if not text or not text.strip():
+                return [], {}, {}
+
+            # Extract flags first (key:value pairs)
+            flags = self._extract_flags(text)
+
+            # Separate global flags from command flags
+            global_flags = extract_global_flags(flags)
+            command_flags = extract_command_flags(flags)
+
+            # Remove flags from text to get remaining arguments
+            text_without_flags = self._remove_flags(text)
+
+            # Parse remaining text into subcommands and positional arguments
+            subcommands, args = self._parse_subcommands_and_args(text_without_flags)
+
+            logger.debug(
+                "Parsed Slack command (sync)",
+                original_text=text,
+                subcommands=subcommands,
+                args=args,
+                flags=command_flags,
+                global_flags=global_flags,
+            )
+
+            return subcommands, args, command_flags
+
+        except Exception as e:
+            logger.error("Failed to parse Slack command (sync)", text=text, error=str(e))
             return [], {}, {}
-
-        # Extract flags first (key:value pairs)
-        flags = self._extract_flags(text)
-
-        # Remove flags from text to get remaining arguments
-        text_without_flags = self._remove_flags(text)
-
-        # Parse remaining text into subcommands and positional arguments
-        subcommands, args = self._parse_subcommands_and_args(text_without_flags)
-
-        logger.debug(
-            "Parsed Slack command",
-            original_text=text,
-            subcommands=subcommands,
-            args=args,
-            flags=flags,
-        )
-
-        return subcommands, args, flags
 
     def _extract_flags(self, text: str) -> dict[str, Any]:
         """Extract key:value flags from command text."""
@@ -179,7 +186,7 @@ class SlackCommandParser:
 
         if len(parts) == 1:
             # Could be either a subcommand or an argument
-            if parts[0] in [
+            if parts[0].lower() in [
                 "website",
                 "monitoring",
                 "system",
@@ -195,23 +202,26 @@ class SlackCommandParser:
                 "health",
                 "metrics",
                 "logs",
+                "help",  # Add help as a known single command
             ]:
                 subcommands = [parts[0]]
             else:
                 args[0] = parts[0]
         elif len(parts) >= 2:
             # Identify subcommands vs arguments
-            # Known subcommand patterns
+            # Known subcommand patterns (case-insensitive)
             known_commands = {
                 "website": ["add", "remove", "list", "status"],
                 "monitoring": ["start", "stop", "pause", "resume", "check"],
                 "system": ["status", "health", "metrics", "logs"],
             }
 
-            if parts[0] in known_commands:
-                subcommands.append(parts[0])
-                if len(parts) > 1 and parts[1] in known_commands[parts[0]]:
-                    subcommands.append(parts[1])
+            # Make case-insensitive comparison
+            first_part_lower = parts[0].lower()
+            if first_part_lower in known_commands:
+                subcommands.append(parts[0])  # Preserve original case
+                if len(parts) > 1 and parts[1].lower() in known_commands[first_part_lower]:
+                    subcommands.append(parts[1])  # Preserve original case
                     # Remaining parts are arguments
                     for i, arg in enumerate(parts[2:]):
                         args[i] = arg
@@ -295,10 +305,11 @@ def parse_slack_command(text: str) -> tuple[list[str], dict[str, Any], dict[str,
         text: Slack command text
 
     Returns:
-        Tuple of (subcommands, args, flags)
+        Tuple of (subcommands, args, flags) for backward compatibility
     """
     parser = SlackCommandParser()
-    return parser.parse_command(text)
+    result = parser.parse_command(text)
+    return result.subcommands, result.args, result.flags
 
 
 def extract_flags(text: str) -> dict[str, Any]:
@@ -312,8 +323,8 @@ def extract_flags(text: str) -> dict[str, Any]:
         Dict of flag key-value pairs
     """
     parser = SlackCommandParser()
-    _, _, flags = parser.parse_command(text)
-    return flags
+    result = parser.parse_command(text)
+    return result.flags
 
 
 def extract_global_flags(flags: dict[str, Any]) -> dict[str, Any]:

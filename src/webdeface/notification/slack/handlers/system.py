@@ -435,3 +435,7 @@ class SystemHandler(BaseSlackHandler, AsyncCommandMixin):
                 message=f"Failed to get system logs: {str(e)}",
                 exit_code=1,
             )
+
+
+# Export the handler class
+__all__ = ["SystemHandler"]

@@ -1,6 +1,6 @@
 """Slack command routing system."""
 
-from typing import Optional
+from typing import Any, Optional
 
 from slack_bolt.async_app import AsyncRespond
 
@@ -23,6 +23,7 @@ class SlackCommandRouter:
         self.parser = SlackCommandParser()
         self.validator = CommandValidator()
         self.formatter = SlackResponseFormatter()
+        self.permission_manager = None  # Will be initialized on first use
 
         # Initialize handlers
         self.handlers: dict[str, BaseSlackHandler] = {
@@ -33,10 +34,12 @@ class SlackCommandRouter:
 
     async def route_command(
         self,
-        text: str,
-        user_id: str,
-        respond: AsyncRespond,
+        text: str = None,
+        user_id: str = None,
+        respond: AsyncRespond = None,
         channel_id: Optional[str] = None,
+        command_text: str = None,  # Support legacy parameter name
+        **kwargs
     ) -> None:
         """
         Route a Slack command to the appropriate handler.
@@ -47,10 +50,20 @@ class SlackCommandRouter:
             respond: Slack response function
             channel_id: Channel where command was sent (optional)
         """
+        # Handle legacy parameter names
+        if command_text is not None:
+            text = command_text
+        if text is None:
+            text = ""
+        if user_id is None:
+            user_id = "test_user"
+        if respond is None:
+            respond = AsyncMock()
+            
         logger.info(
             "Routing Slack command",
             user_id=user_id,
-            text=text[:100],  # Truncate for logging
+            text=text[:100] if text else "",  # Truncate for logging
             channel_id=channel_id,
         )
 
@@ -61,7 +74,7 @@ class SlackCommandRouter:
                 return
 
             # Parse command
-            parse_result = self.parser.parse_command(text)
+            parse_result = await self.parser.parse_command(text)
 
             if not parse_result.success:
                 await self._send_parse_error(respond, parse_result.error_message)
@@ -280,6 +293,59 @@ class SlackCommandRouter:
     def get_registered_commands(self) -> list[str]:
         """Get list of registered command groups."""
         return list(self.handlers.keys())
+
+    async def get_available_commands(self) -> dict[str, Any]:
+        """Get available commands with metadata."""
+        commands = {}
+        for command_group, handler in self.handlers.items():
+            commands[command_group] = {
+                "description": f"{command_group.title()} management commands",
+                "handler": handler.__class__.__name__,
+                "subcommands": self._get_handler_subcommands(command_group)
+            }
+        return commands
+
+    def _get_handler_subcommands(self, command_group: str) -> list[str]:
+        """Get subcommands for a handler."""
+        # Define basic subcommands for each handler type
+        subcommands_map = {
+            "website": ["add", "remove", "list", "status"],
+            "monitoring": ["start", "stop", "pause", "resume", "check"],
+            "system": ["status", "health", "metrics", "logs"]
+        }
+        return subcommands_map.get(command_group, [])
+
+    async def validate_permissions_for_user(self, user_id: str, command: str) -> bool:
+        """Validate if user has permissions for a command."""
+        try:
+            from ..permissions import get_permission_manager
+            
+            if not self.permission_manager:
+                self.permission_manager = await get_permission_manager()
+            
+            # Parse command to get subcommands
+            parse_result = await self.parser.parse_command(command)
+            if not parse_result.success or not parse_result.subcommands:
+                return False
+                
+            # Get handler and check permissions
+            command_group = parse_result.subcommands[0]
+            handler = self.handlers.get(command_group)
+            if not handler:
+                return False
+                
+            required_permissions = handler.get_required_permissions(parse_result.subcommands)
+            
+            for permission in required_permissions:
+                has_permission = await self.permission_manager.check_permission(user_id, permission)
+                if not has_permission:
+                    return False
+                    
+            return True
+            
+        except Exception as e:
+            logger.error("Error validating permissions", user_id=user_id, command=command, error=str(e))
+            return False
 
 
 # Global command router instance

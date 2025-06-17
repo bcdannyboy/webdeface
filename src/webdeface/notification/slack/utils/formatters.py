@@ -27,6 +27,23 @@ class SlackResponseFormatter:
             "logs": "📋",
         }
 
+    def format_command_response(
+        self, result: CommandResult, user_id: str = None, verbose: bool = False, output_format: str = "table"
+    ) -> dict[str, Any]:
+        """
+        Format CLI CommandResult for Slack response.
+        
+        Args:
+            result: CLI CommandResult object
+            user_id: Slack user ID (optional, for context)
+            verbose: Whether to include verbose details
+            output_format: Format preference (table, json)
+            
+        Returns:
+            Slack response dict with text and blocks
+        """
+        return self.format_result(result, verbose, output_format)
+    
     def format_result(
         self, result: CommandResult, verbose: bool = False, output_format: str = "table"
     ) -> dict[str, Any]:
@@ -49,6 +66,52 @@ class SlackResponseFormatter:
         except Exception as e:
             logger.error("Error formatting Slack response", error=str(e))
             return self._format_fallback_error(str(e))
+    
+    def format_success(self, message: str, data: dict = None) -> dict[str, Any]:
+        """Format a success response."""
+        from ....cli.types import CommandResult
+        result = CommandResult(success=True, message=message, data=data or {})
+        return self.format_result(result)
+    
+    def format_error(self, message: str, data: dict = None) -> dict[str, Any]:
+        """Format an error response."""
+        from ....cli.types import CommandResult
+        result = CommandResult(success=False, message=message, data=data or {})
+        return self.format_result(result)
+        
+    def format_help(self, command_context: str = None) -> dict[str, Any]:
+        """Format a help response."""
+        return self.format_help_message(command_context)
+
+    def format_error_response(self, error_message: str, error_type: str = "error") -> dict[str, Any]:
+        """Format an error response with proper styling."""
+        emoji = self.emoji_map.get(error_type, "❌")
+        return {
+            "text": f"{emoji} {error_message}",
+            "response_type": "ephemeral",
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"{emoji} *Error:* {error_message}",
+                    },
+                },
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "mrkdwn",
+                            "text": "💡 Try `/webdeface help` for usage examples",
+                        }
+                    ],
+                },
+            ],
+        }
+
+    def format_help_response(self, command_context: str = None) -> dict[str, Any]:
+        """Format a help response."""
+        return self.format_help_message(command_context)
 
     def _format_success_result(
         self, result: CommandResult, verbose: bool, output_format: str
@@ -260,6 +323,141 @@ class SlackResponseFormatter:
                     ],
                 }
             )
+
+        return blocks
+
+    def _format_alerts_table(
+        self, alerts: list[dict], verbose: bool
+    ) -> list[dict[str, Any]]:
+        """Format alerts list as Slack blocks."""
+        blocks = []
+
+        if not alerts:
+            blocks.append(
+                {
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": "📝 No alerts found"},
+                }
+            )
+            return blocks
+
+        # Header
+        blocks.append(
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": f"🚨 Alerts ({len(alerts)})",
+                },
+            }
+        )
+
+        # Alert entries
+        for alert in alerts[:10]:  # Limit to prevent message size issues
+            severity = alert.get("severity", "unknown").upper()
+            severity_emoji = {
+                "CRITICAL": "🔴",
+                "HIGH": "🟠",
+                "MEDIUM": "🟡",
+                "LOW": "🟢",
+                "INFO": "🔵"
+            }.get(severity, "⚪")
+            
+            created_at = alert.get("created_at", "Unknown")
+            if created_at != "Unknown" and isinstance(created_at, str):
+                try:
+                    dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                    created_at = dt.strftime("%m/%d %H:%M")
+                except:
+                    pass
+
+            alert_text = (
+                f"{severity_emoji} *{alert.get('title', 'Unknown Alert')}*\n"
+                f"Type: {alert.get('alert_type', 'Unknown')}\n"
+                f"Severity: {severity}\n"
+                f"Created: {created_at}"
+            )
+
+            if verbose:
+                alert_text += f"\nWebsite: {alert.get('website_name', 'Unknown')}"
+                alert_text += f"\nStatus: {alert.get('status', 'open')}"
+                if alert.get('description'):
+                    alert_text += f"\nDescription: {alert.get('description')}"
+
+            blocks.append(
+                {"type": "section", "text": {"type": "mrkdwn", "text": alert_text}}
+            )
+
+        if len(alerts) > 10:
+            blocks.append(
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "mrkdwn",
+                            "text": f"... and {len(alerts) - 10} more alerts",
+                        }
+                    ],
+                }
+            )
+
+        return blocks
+
+    def _format_metrics_table(
+        self, metrics: dict[str, Any], verbose: bool
+    ) -> list[dict[str, Any]]:
+        """Format metrics data as Slack blocks."""
+        blocks = []
+
+        # Header
+        blocks.append(
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": "📊 System Metrics",
+                },
+            }
+        )
+
+        # Format metrics by category
+        if "performance" in metrics:
+            perf = metrics["performance"]
+            fields = []
+            if "cpu_usage" in perf:
+                fields.append({
+                    "type": "mrkdwn",
+                    "text": f"*CPU Usage:*\n{perf['cpu_usage']:.1f}%"
+                })
+            if "memory_usage" in perf:
+                fields.append({
+                    "type": "mrkdwn",
+                    "text": f"*Memory Usage:*\n{perf['memory_usage']:.1f}%"
+                })
+            if "disk_usage" in perf:
+                fields.append({
+                    "type": "mrkdwn",
+                    "text": f"*Disk Usage:*\n{perf['disk_usage']:.1f}%"
+                })
+            
+            if fields:
+                blocks.append({"type": "section", "fields": fields})
+
+        # Add monitoring metrics if present
+        if "monitoring" in metrics:
+            mon = metrics["monitoring"]
+            mon_text = "*Monitoring Activity:*\n"
+            if "checks_performed" in mon:
+                mon_text += f"Checks Performed: {mon['checks_performed']}\n"
+            if "alerts_generated" in mon:
+                mon_text += f"Alerts Generated: {mon['alerts_generated']}\n"
+            if "average_response_time" in mon:
+                mon_text += f"Avg Response Time: {mon['average_response_time']:.2f}ms\n"
+                
+            blocks.append({
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": mon_text}
+            })
 
         return blocks
 

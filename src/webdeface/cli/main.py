@@ -9,10 +9,6 @@ import click
 from rich.console import Console
 from rich.table import Table
 
-from ..scheduler.orchestrator import (
-    cleanup_scheduling_orchestrator,
-    get_scheduling_orchestrator,
-)
 from ..storage import get_storage_manager
 from ..utils.logging import get_structured_logger
 from .types import CLIContext, CommandResult
@@ -142,6 +138,7 @@ async def add(
         website = await storage.create_website(website_data)
 
         # Schedule monitoring
+        from ..scheduler.orchestrator import get_scheduling_orchestrator
         orchestrator = await get_scheduling_orchestrator()
         execution_id = await orchestrator.schedule_website_monitoring(website.id)
 
@@ -187,6 +184,7 @@ async def remove(ctx: CLIContext, website_id: str, force: bool) -> None:
                 return
 
         # Unschedule monitoring
+        from ..scheduler.orchestrator import get_scheduling_orchestrator
         orchestrator = await get_scheduling_orchestrator()
         await orchestrator.unschedule_website_monitoring(website_id)
 
@@ -357,6 +355,7 @@ def monitoring():
 async def start(ctx: CLIContext, website_id: Optional[str]) -> None:
     """Start monitoring operations."""
     try:
+        from ..scheduler.orchestrator import get_scheduling_orchestrator
         orchestrator = await get_scheduling_orchestrator()
 
         if website_id:
@@ -393,6 +392,7 @@ async def start(ctx: CLIContext, website_id: Optional[str]) -> None:
 async def stop(ctx: CLIContext, website_id: Optional[str]) -> None:
     """Stop monitoring operations."""
     try:
+        from ..scheduler.orchestrator import get_scheduling_orchestrator
         orchestrator = await get_scheduling_orchestrator()
 
         if website_id:
@@ -405,6 +405,7 @@ async def stop(ctx: CLIContext, website_id: Optional[str]) -> None:
                 data={"website_id": website_id},
             )
         else:
+            from ..scheduler.orchestrator import cleanup_scheduling_orchestrator
             await cleanup_scheduling_orchestrator()
             result = CommandResult(
                 success=True,
@@ -428,6 +429,7 @@ async def stop(ctx: CLIContext, website_id: Optional[str]) -> None:
 async def pause(ctx: CLIContext, website_id: Optional[str]) -> None:
     """Pause monitoring operations."""
     try:
+        from ..scheduler.orchestrator import get_scheduling_orchestrator
         orchestrator = await get_scheduling_orchestrator()
 
         if website_id:
@@ -459,6 +461,7 @@ async def pause(ctx: CLIContext, website_id: Optional[str]) -> None:
 async def resume(ctx: CLIContext, website_id: Optional[str]) -> None:
     """Resume monitoring operations."""
     try:
+        from ..scheduler.orchestrator import get_scheduling_orchestrator
         orchestrator = await get_scheduling_orchestrator()
 
         if website_id:
@@ -490,6 +493,7 @@ async def resume(ctx: CLIContext, website_id: Optional[str]) -> None:
 async def check(ctx: CLIContext, website_id: str) -> None:
     """Run immediate check for a website."""
     try:
+        from ..scheduler.orchestrator import get_scheduling_orchestrator
         orchestrator = await get_scheduling_orchestrator()
 
         # Execute immediate monitoring workflow
@@ -528,6 +532,7 @@ def system():
 async def status(ctx: CLIContext) -> None:
     """Show system status."""
     try:
+        from ..scheduler.orchestrator import get_scheduling_orchestrator
         orchestrator = await get_scheduling_orchestrator()
         status_data = await orchestrator.get_orchestrator_status()
 
@@ -585,6 +590,7 @@ async def status(ctx: CLIContext) -> None:
 async def health(ctx: CLIContext) -> None:
     """Show system health information."""
     try:
+        from ..scheduler.orchestrator import get_scheduling_orchestrator
         orchestrator = await get_scheduling_orchestrator()
         report = await orchestrator.get_monitoring_report()
 

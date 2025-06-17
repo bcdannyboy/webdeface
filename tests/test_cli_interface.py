@@ -75,7 +75,7 @@ class TestWebsiteCommands:
     """Test website management CLI commands."""
 
     @patch("src.webdeface.cli.main.get_storage_manager")
-    @patch("src.webdeface.cli.main.get_scheduling_orchestrator")
+    @patch("src.webdeface.scheduler.orchestrator.get_scheduling_orchestrator")
     def test_website_add_success(
         self,
         mock_get_orchestrator,
@@ -98,7 +98,7 @@ class TestWebsiteCommands:
         mock_orchestrator.schedule_website_monitoring.assert_called_once()
 
     @patch("src.webdeface.cli.main.get_storage_manager")
-    @patch("src.webdeface.cli.main.get_scheduling_orchestrator")
+    @patch("src.webdeface.scheduler.orchestrator.get_scheduling_orchestrator")
     def test_website_add_duplicate(
         self,
         mock_get_orchestrator,
@@ -128,7 +128,7 @@ class TestWebsiteCommands:
         mock_storage.list_websites.assert_called_once()
 
     @patch("src.webdeface.cli.main.get_storage_manager")
-    @patch("src.webdeface.cli.main.get_scheduling_orchestrator")
+    @patch("src.webdeface.scheduler.orchestrator.get_scheduling_orchestrator")
     def test_website_remove(
         self,
         mock_get_orchestrator,
@@ -166,7 +166,7 @@ class TestWebsiteCommands:
 class TestMonitoringCommands:
     """Test monitoring control CLI commands."""
 
-    @patch("src.webdeface.cli.main.get_scheduling_orchestrator")
+    @patch("src.webdeface.scheduler.orchestrator.get_scheduling_orchestrator")
     def test_monitoring_start(
         self, mock_get_orchestrator, cli_runner, mock_orchestrator
     ):
@@ -178,8 +178,8 @@ class TestMonitoringCommands:
         assert result.exit_code == 0
         assert "Monitoring system started" in result.output
 
-    @patch("src.webdeface.cli.main.get_scheduling_orchestrator")
-    @patch("src.webdeface.cli.main.cleanup_scheduling_orchestrator")
+    @patch("src.webdeface.scheduler.orchestrator.get_scheduling_orchestrator")
+    @patch("src.webdeface.scheduler.orchestrator.cleanup_scheduling_orchestrator")
     def test_monitoring_stop(
         self, mock_cleanup, mock_get_orchestrator, cli_runner, mock_orchestrator
     ):
@@ -191,7 +191,7 @@ class TestMonitoringCommands:
         assert result.exit_code == 0
         assert "Monitoring system stopped" in result.output
 
-    @patch("src.webdeface.cli.main.get_scheduling_orchestrator")
+    @patch("src.webdeface.scheduler.orchestrator.get_scheduling_orchestrator")
     def test_monitoring_pause(
         self, mock_get_orchestrator, cli_runner, mock_orchestrator
     ):
@@ -204,7 +204,7 @@ class TestMonitoringCommands:
         assert "All monitoring jobs paused" in result.output
         mock_orchestrator.pause_all_jobs.assert_called_once()
 
-    @patch("src.webdeface.cli.main.get_scheduling_orchestrator")
+    @patch("src.webdeface.scheduler.orchestrator.get_scheduling_orchestrator")
     def test_monitoring_resume(
         self, mock_get_orchestrator, cli_runner, mock_orchestrator
     ):
@@ -217,7 +217,7 @@ class TestMonitoringCommands:
         assert "All monitoring jobs resumed" in result.output
         mock_orchestrator.resume_all_jobs.assert_called_once()
 
-    @patch("src.webdeface.cli.main.get_scheduling_orchestrator")
+    @patch("src.webdeface.scheduler.orchestrator.get_scheduling_orchestrator")
     def test_monitoring_check(
         self, mock_get_orchestrator, cli_runner, mock_orchestrator
     ):
@@ -234,7 +234,7 @@ class TestMonitoringCommands:
 class TestSystemCommands:
     """Test system status CLI commands."""
 
-    @patch("src.webdeface.cli.main.get_scheduling_orchestrator")
+    @patch("src.webdeface.scheduler.orchestrator.get_scheduling_orchestrator")
     def test_system_status(self, mock_get_orchestrator, cli_runner, mock_orchestrator):
         """Test system status command."""
         mock_get_orchestrator.return_value = mock_orchestrator
@@ -244,7 +244,7 @@ class TestSystemCommands:
         assert result.exit_code == 0
         mock_orchestrator.get_orchestrator_status.assert_called_once()
 
-    @patch("src.webdeface.cli.main.get_scheduling_orchestrator")
+    @patch("src.webdeface.scheduler.orchestrator.get_scheduling_orchestrator")
     def test_system_health(self, mock_get_orchestrator, cli_runner, mock_orchestrator):
         """Test system health command."""
         mock_get_orchestrator.return_value = mock_orchestrator
@@ -315,7 +315,7 @@ class TestCLIIntegration:
     """Test CLI integration scenarios."""
 
     @patch("src.webdeface.cli.main.get_storage_manager")
-    @patch("src.webdeface.cli.main.get_scheduling_orchestrator")
+    @patch("src.webdeface.scheduler.orchestrator.get_scheduling_orchestrator")
     def test_complete_workflow(
         self,
         mock_get_orchestrator,

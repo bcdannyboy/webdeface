@@ -8,8 +8,8 @@ from ..config import get_settings
 from ..storage import get_storage_manager
 from ..utils.async_utils import AsyncContextManager
 from ..utils.logging import get_structured_logger
+from .interfaces import HealthMonitorInterface, SchedulingOrchestratorInterface
 from .manager import get_scheduler_manager
-from .monitoring import get_health_monitor
 from .types import (
     JobConfig,
     JobType,
@@ -22,7 +22,7 @@ from .workflow import get_workflow_engine
 logger = get_structured_logger(__name__)
 
 
-class SchedulingOrchestrator(AsyncContextManager):
+class SchedulingOrchestrator(AsyncContextManager, SchedulingOrchestratorInterface):
     """Main orchestrator that coordinates scheduling, workflows, and monitoring."""
 
     def __init__(self):
@@ -54,7 +54,14 @@ class SchedulingOrchestrator(AsyncContextManager):
             # Initialize all components
             self.scheduler_manager = await get_scheduler_manager()
             self.workflow_engine = await get_workflow_engine()
-            self.health_monitor = await get_health_monitor()
+            
+            # Use lazy import for health monitor to avoid circular dependency
+            try:
+                from .monitoring import get_health_monitor
+                self.health_monitor = await get_health_monitor()
+            except ImportError:
+                logger.warning("Health monitor not available due to import issues")
+                self.health_monitor = None
 
             # Schedule default monitoring jobs
             await self._schedule_system_jobs()
@@ -499,6 +506,54 @@ class SchedulingOrchestrator(AsyncContextManager):
         # For now, return mock counts
 
         return {"resumed_jobs": 0, "failed_to_resume": 0}
+
+    async def pause_website_monitoring(self, website_id: str, duration: int) -> None:
+        """Pause monitoring for a website for specified duration."""
+        try:
+            # This would pause the specific job for the given duration
+            job_id = f"monitor_{website_id}"
+            await self.scheduler_manager.pause_job(job_id, duration)
+            
+            logger.info(
+                "Website monitoring paused",
+                website_id=website_id,
+                duration=duration
+            )
+        except Exception as e:
+            logger.error(f"Failed to pause website monitoring: {str(e)}")
+            raise SchedulerError(f"Monitoring pause failed: {str(e)}")
+
+    async def resume_website_monitoring(self, website_id: str) -> None:
+        """Resume monitoring for a website."""
+        try:
+            # This would resume the specific job
+            job_id = f"monitor_{website_id}"
+            await self.scheduler_manager.resume_job(job_id)
+            
+            logger.info("Website monitoring resumed", website_id=website_id)
+        except Exception as e:
+            logger.error(f"Failed to resume website monitoring: {str(e)}")
+            raise SchedulerError(f"Monitoring resume failed: {str(e)}")
+
+    async def trigger_immediate_check(self, website_id: str) -> str:
+        """Trigger immediate check for a website."""
+        try:
+            execution_id = await self.execute_immediate_workflow(
+                workflow_id="website_monitoring",
+                website_id=website_id,
+                parameters={"priority": "immediate"}
+            )
+            
+            logger.info(
+                "Immediate check triggered",
+                website_id=website_id,
+                execution_id=execution_id
+            )
+            
+            return execution_id
+        except Exception as e:
+            logger.error(f"Failed to trigger immediate check: {str(e)}")
+            raise SchedulerError(f"Immediate check failed: {str(e)}")
 
 
 # Global orchestrator instance

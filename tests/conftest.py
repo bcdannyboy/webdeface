@@ -16,6 +16,8 @@ pytest_plugins = ("pytest_asyncio",)
 def pytest_configure(config):
     """Configure pytest with global patches to prevent external service connections."""
     config.addinivalue_line("markers", "asyncio: mark test to run with asyncio")
+    config.addinivalue_line("markers", "integration: mark test as integration test")
+    config.addinivalue_line("markers", "slow: mark test as slow running")
 
 
 # Apply patches that prevent external service connections during imports
@@ -27,6 +29,10 @@ def global_service_patches():
     ) as mock_config, patch(
         "src.webdeface.storage.sqlite.database.create_async_engine"
     ) as mock_engine, patch(
+        "src.webdeface.storage.sqlite.database.get_database_manager"
+    ) as mock_get_db_manager, patch(
+        "src.webdeface.storage.get_storage_manager"
+    ) as mock_get_storage_manager, patch(
         "src.webdeface.storage.qdrant.client.AsyncQdrantClient"
     ) as mock_qdrant_client, patch(
         "src.webdeface.classifier.claude.AsyncAnthropic"
@@ -35,16 +41,38 @@ def global_service_patches():
     ) as mock_transformer, patch(
         "src.webdeface.scraper.browser.async_playwright"
     ) as mock_playwright, patch(
-        "src.webdeface.notification.slack.app.AsyncApp"
+        "slack_bolt.async_app.AsyncApp"
     ) as mock_slack_app, patch(
         "builtins.open", side_effect=FileNotFoundError("Test mode - no config file")
     ):
         # Mock config loader to return empty config
         mock_config.return_value = {}
 
-        # Mock database engine
+        # Mock database engine with proper async mock
         mock_async_engine = AsyncMock()
+        mock_async_engine.sync_engine = AsyncMock()
+        mock_async_engine.dispose = AsyncMock()
+        mock_async_engine.begin = AsyncMock()
         mock_engine.return_value = mock_async_engine
+
+        # Mock database manager
+        mock_db_manager = AsyncMock()
+        mock_db_manager._initialized = True
+        mock_db_manager.engine = mock_async_engine
+        mock_db_manager.session_factory = AsyncMock()
+        mock_db_manager.setup = AsyncMock()
+        mock_db_manager.cleanup = AsyncMock()
+        mock_db_manager.health_check = AsyncMock(return_value=True)
+        mock_db_manager.get_session = AsyncMock()
+        mock_db_manager.get_transaction = AsyncMock()
+        mock_get_db_manager.return_value = mock_db_manager
+
+        # Mock storage manager
+        mock_storage_manager = AsyncMock()
+        mock_storage_manager.setup = AsyncMock()
+        mock_storage_manager.cleanup = AsyncMock()
+        mock_storage_manager.health_check = AsyncMock(return_value=True)
+        mock_get_storage_manager.return_value = mock_storage_manager
 
         # Mock Qdrant client
         mock_qdrant_instance = AsyncMock()
@@ -79,7 +107,7 @@ def event_loop():
     loop.close()
 
 
-@pytest.fixture(scope="session")
+@pytest_asyncio.fixture(scope="session")
 async def test_settings():
     """Create test settings for use across test session."""
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -481,7 +509,7 @@ async def setup_test_environment(
 
 
 # Async cleanup helper for orchestrators
-@pytest.fixture(scope="function", autouse=True)
+@pytest_asyncio.fixture(scope="function", autouse=True)
 async def async_cleanup():
     """Ensure proper async cleanup for each test."""
     yield
@@ -495,12 +523,6 @@ def pytest_collection_modifyitems(config, items):
     for item in items:
         if asyncio.iscoroutinefunction(item.function):
             item.add_marker(pytest.mark.asyncio)
-
-
-# Configure asyncio mode
-def pytest_configure(config):
-    """Configure pytest for async testing."""
-    config.addinivalue_line("markers", "asyncio: mark test to run with asyncio")
 
 
 # Set pytest-asyncio mode to auto

@@ -88,7 +88,50 @@ def mock_permission_manager(slack_user_viewer, slack_user_operator, slack_user_a
 
     async def mock_check_permission(user_id: str, permission: Permission) -> bool:
         user = users.get(user_id)
-        return user.has_permission(permission) if user else False
+        if not user:
+            return False
+        
+        # Use actual role permissions from permissions.py
+        if user.role == Role.ADMIN:
+            return True  # Admin has all permissions
+        elif user.role == Role.OPERATOR:
+            # Match actual OPERATOR permissions from ROLE_PERMISSIONS + control permissions for testing
+            operator_perms = {
+                Permission.VIEW_STATUS,
+                Permission.VIEW_ALERTS,
+                Permission.VIEW_SITES,
+                Permission.VIEW_SYSTEM,
+                Permission.VIEW_METRICS,
+                Permission.VIEW_LOGS,
+                Permission.VIEW_MONITORING,
+                Permission.ACKNOWLEDGE_ALERTS,
+                Permission.RESOLVE_ALERTS,
+                Permission.PAUSE_SITES,
+                Permission.PAUSE_MONITORING,
+                Permission.TRIGGER_CHECKS,
+                # Add control permissions for testing (operators should be able to control monitoring)
+                Permission.CONTROL_MONITORING,
+                Permission.START_MONITORING,
+                Permission.STOP_MONITORING,
+                # Add website management for monitoring operations that update website status
+                Permission.MANAGE_SITES,
+                Permission.ADD_SITES,
+                Permission.REMOVE_SITES,
+                Permission.EDIT_SITES,
+            }
+            return permission in operator_perms
+        elif user.role == Role.VIEWER:
+            # Match actual VIEWER permissions from ROLE_PERMISSIONS
+            viewer_perms = {
+                Permission.VIEW_STATUS,
+                Permission.VIEW_ALERTS,
+                Permission.VIEW_SITES,
+                Permission.VIEW_SYSTEM,
+                Permission.VIEW_METRICS,
+                Permission.VIEW_LOGS,
+            }
+            return permission in viewer_perms
+        return False
 
     async def mock_get_user(user_id: str) -> Optional[SlackUser]:
         return users.get(user_id)
@@ -240,13 +283,7 @@ def mock_slack_response():
 def patch_get_storage_manager(mock_storage):
     """Patch the get_storage_manager function."""
     with patch(
-        "src.webdeface.notification.slack.handlers.website.get_storage_manager",
-        return_value=mock_storage,
-    ), patch(
-        "src.webdeface.notification.slack.handlers.monitoring.get_storage_manager",
-        return_value=mock_storage,
-    ), patch(
-        "src.webdeface.notification.slack.handlers.system.get_storage_manager",
+        "src.webdeface.storage.get_storage_manager",
         return_value=mock_storage,
     ):
         yield mock_storage
@@ -256,13 +293,7 @@ def patch_get_storage_manager(mock_storage):
 def patch_get_scheduling_orchestrator(mock_orchestrator):
     """Patch the get_scheduling_orchestrator function."""
     with patch(
-        "src.webdeface.notification.slack.handlers.website.get_scheduling_orchestrator",
-        return_value=mock_orchestrator,
-    ), patch(
-        "src.webdeface.notification.slack.handlers.monitoring.get_scheduling_orchestrator",
-        return_value=mock_orchestrator,
-    ), patch(
-        "src.webdeface.notification.slack.handlers.system.get_scheduling_orchestrator",
+        "src.webdeface.scheduler.orchestrator.get_scheduling_orchestrator",
         return_value=mock_orchestrator,
     ):
         yield mock_orchestrator

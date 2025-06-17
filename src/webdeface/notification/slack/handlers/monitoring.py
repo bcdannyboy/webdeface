@@ -3,7 +3,6 @@
 from typing import Any
 
 from ....cli.types import CLIContext, CommandResult
-from ....scheduler.orchestrator import get_scheduling_orchestrator
 from ....storage import get_storage_manager
 from ....utils.logging import get_structured_logger
 from ..permissions import Permission
@@ -85,6 +84,8 @@ class MonitoringHandler(BaseSlackHandler, AsyncCommandMixin):
             website_id = str(args[0])
 
         try:
+            # Use lazy import to avoid circular dependency
+            from ....scheduler.orchestrator import get_scheduling_orchestrator
             orchestrator = await get_scheduling_orchestrator()
             storage = await get_storage_manager()
 
@@ -186,6 +187,8 @@ class MonitoringHandler(BaseSlackHandler, AsyncCommandMixin):
             website_id = str(args[0])
 
         try:
+            # Use lazy import to avoid circular dependency
+            from ....scheduler.orchestrator import get_scheduling_orchestrator
             orchestrator = await get_scheduling_orchestrator()
             storage = await get_storage_manager()
 
@@ -287,6 +290,8 @@ class MonitoringHandler(BaseSlackHandler, AsyncCommandMixin):
         duration = flags.get("duration", 3600)  # Default 1 hour
 
         try:
+            # Use lazy import to avoid circular dependency
+            from ....scheduler.orchestrator import get_scheduling_orchestrator
             orchestrator = await get_scheduling_orchestrator()
             storage = await get_storage_manager()
 
@@ -339,6 +344,8 @@ class MonitoringHandler(BaseSlackHandler, AsyncCommandMixin):
         website_id = str(args[0])
 
         try:
+            # Use lazy import to avoid circular dependency
+            from ....scheduler.orchestrator import get_scheduling_orchestrator
             orchestrator = await get_scheduling_orchestrator()
             storage = await get_storage_manager()
 
@@ -383,6 +390,8 @@ class MonitoringHandler(BaseSlackHandler, AsyncCommandMixin):
         website_id = str(args[0])
 
         try:
+            # Use lazy import to avoid circular dependency
+            from ....scheduler.orchestrator import get_scheduling_orchestrator
             orchestrator = await get_scheduling_orchestrator()
             storage = await get_storage_manager()
 
@@ -412,3 +421,7 @@ class MonitoringHandler(BaseSlackHandler, AsyncCommandMixin):
             return CommandResult(
                 success=False, message=f"Failed to trigger check: {str(e)}", exit_code=1
             )
+
+
+# Export the handler class
+__all__ = ["MonitoringHandler"]

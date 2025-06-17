@@ -8,7 +8,6 @@ from typing import Any, Optional
 
 from ..classifier import get_classification_orchestrator
 from ..config import get_settings
-from ..notification.slack import get_notification_delivery
 from ..scraper import get_scraping_orchestrator
 from ..storage import get_storage_manager
 from ..utils.async_utils import AsyncContextManager
@@ -593,17 +592,24 @@ class WorkflowEngine(AsyncContextManager):
                 workflow_execution.website_id, limit=5
             )
 
-            # Get delivery manager
-            slack_delivery = await get_notification_delivery()
+            # Get delivery manager using lazy import
+            try:
+                from ..notification.slack.delivery import get_notification_delivery
+                slack_delivery = await get_notification_delivery()
+            except ImportError:
+                logger.warning("Notification delivery not available")
+                slack_delivery = None
 
             alerts_sent = 0
-            if recent_alerts:
+            if recent_alerts and slack_delivery:
                 for alert in recent_alerts:
                     if alert.status == "open" and alert.notifications_sent == 0:
                         # Send alert via Slack
                         success = await slack_delivery.send_alert_notification(alert)
                         if success:
                             alerts_sent += 1
+            elif recent_alerts and not slack_delivery:
+                logger.warning("Cannot send alerts: notification delivery unavailable")
 
             return {
                 "alerts_processed": len(recent_alerts) if recent_alerts else 0,

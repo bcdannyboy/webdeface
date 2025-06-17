@@ -6,7 +6,6 @@ from .app import (
     get_slack_manager,
     slack_health_check,
 )
-from .commands import SlackCommandHandler, get_command_handler, register_slack_commands
 from .delivery import (
     SlackNotificationDelivery,
     get_notification_delivery,
@@ -15,9 +14,6 @@ from .delivery import (
     send_system_status_notification,
 )
 from .formatting import SlackMessageFormatter
-
-# from .handlers import SlackEventHandler, get_event_handler, register_slack_handlers
-from .handlers.router import SlackCommandRouter
 from .integration import (
     SlackCLIIntegration,
     get_cli_integration,
@@ -43,22 +39,44 @@ from .router import (
     route_site_down_notification,
 )
 
+# Lazy imports to avoid circular dependencies
+def get_command_handler():
+    """Get command handler with lazy import."""
+    from .commands import get_command_handler as _get_command_handler
+    return _get_command_handler()
+
+def register_slack_commands():
+    """Register Slack commands with lazy import."""
+    from .commands import register_slack_commands as _register_slack_commands
+    return _register_slack_commands()
+
+def get_command_router():
+    """Get command router with lazy import."""
+    from .handlers.router import get_command_router as _get_command_router
+    return _get_command_router()
+
+def register_slack_handlers():
+    """Register Slack handlers with lazy import."""
+    from .handlers import register_slack_handlers as _register_slack_handlers
+    return _register_slack_handlers()
+
 __all__ = [
     # App management
     "SlackBoltManager",
     "get_slack_manager",
     "cleanup_slack_manager",
     "slack_health_check",
-    # Commands
-    "SlackCommandHandler",
+    # Commands (lazy loaded)
     "get_command_handler",
     "register_slack_commands",
+    "register_slack_handlers",
     # CLI Integration
-    "SlackCommandRouter",
     "SlackCLIIntegration",
     "get_cli_integration",
     "register_cli_integration",
     "handle_cli_command_from_slack",
+    # Command routing (lazy loaded)
+    "get_command_router",
     # Message delivery
     "SlackNotificationDelivery",
     "get_notification_delivery",
@@ -67,10 +85,6 @@ __all__ = [
     "send_system_status_notification",
     # Message formatting
     "SlackMessageFormatter",
-    # Event handlers
-    # "SlackEventHandler",
-    # "get_event_handler",
-    # "register_slack_handlers",
     # Permissions
     "Permission",
     "Role",

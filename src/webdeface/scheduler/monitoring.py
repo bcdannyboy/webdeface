@@ -11,11 +11,11 @@ import psutil
 
 from ..classifier import get_classification_orchestrator
 from ..config import get_settings
-from ..notification.slack import get_notification_delivery
 from ..scraper import get_scraping_orchestrator
 from ..storage import get_storage_manager
 from ..utils.async_utils import AsyncContextManager
 from ..utils.logging import get_structured_logger
+from .interfaces import HealthMonitorInterface, NotificationDeliveryProtocol
 from .manager import get_scheduler_manager
 from .types import SchedulerStats
 from .workflow import get_workflow_engine
@@ -64,7 +64,7 @@ class MonitoringReport:
     overall_health_score: float  # 0.0 to 1.0
 
 
-class HealthMonitor(AsyncContextManager):
+class HealthMonitor(AsyncContextManager, HealthMonitorInterface):
     """Monitors system health and performance."""
 
     def __init__(self):
@@ -541,16 +541,24 @@ class HealthMonitor(AsyncContextManager):
     async def _check_notification_health(self) -> ComponentHealth:
         """Check notification system health."""
         try:
-            slack_delivery = await get_notification_delivery()
-
-            # Test Slack connectivity (simplified)
-            healthy = True  # Would implement actual connectivity test
-            status_message = "Notification system operational"
-
-            metrics = {
-                "slack_available": True,
-                "last_notification": None,  # Would track last successful notification
-            }
+            # Use lazy import to avoid circular dependency
+            try:
+                from ..notification.slack.delivery import get_notification_delivery
+                slack_delivery = await get_notification_delivery()
+                
+                # Test Slack connectivity (simplified)
+                healthy = True  # Would implement actual connectivity test
+                status_message = "Notification system operational"
+                
+                metrics = {
+                    "slack_available": True,
+                    "last_notification": None,  # Would track last successful notification
+                }
+            except ImportError:
+                # Notification system not available
+                healthy = False
+                status_message = "Notification system not available"
+                metrics = {"slack_available": False}
 
             return ComponentHealth(
                 component_name="notification_system",
@@ -669,30 +677,39 @@ class HealthMonitor(AsyncContextManager):
     async def _send_health_alert(self, report: MonitoringReport) -> None:
         """Send health alert notification."""
         try:
-            slack_delivery = await get_notification_delivery()
+            # Use lazy import to avoid circular dependency
+            try:
+                from ..notification.slack.delivery import get_notification_delivery
+                slack_delivery = await get_notification_delivery()
+                
+                # Format alert message
+                unhealthy_components = [
+                    name
+                    for name, health in report.component_health.items()
+                    if not health.healthy
+                ]
 
-            # Format alert message
-            unhealthy_components = [
-                name
-                for name, health in report.component_health.items()
-                if not health.healthy
-            ]
+                message = "🚨 System Health Alert\n\n"
+                message += f"Overall Health Score: {report.overall_health_score:.2f}\n"
+                message += f"Unhealthy Components: {', '.join(unhealthy_components)}\n\n"
 
-            message = "🚨 System Health Alert\n\n"
-            message += f"Overall Health Score: {report.overall_health_score:.2f}\n"
-            message += f"Unhealthy Components: {', '.join(unhealthy_components)}\n\n"
+                if report.recommendations:
+                    message += "Recommendations:\n"
+                    for rec in report.recommendations:
+                        message += f"• {rec}\n"
 
-            if report.recommendations:
-                message += "Recommendations:\n"
-                for rec in report.recommendations:
-                    message += f"• {rec}\n"
-
-            # Send alert (simplified)
-            logger.warning(
-                "Health alert triggered",
-                health_score=report.overall_health_score,
-                unhealthy_components=unhealthy_components,
-            )
+                # Send alert (simplified)
+                logger.warning(
+                    "Health alert triggered",
+                    health_score=report.overall_health_score,
+                    unhealthy_components=unhealthy_components,
+                )
+            except ImportError:
+                # Notification system not available, just log
+                logger.warning(
+                    "Health alert triggered (notification system unavailable)",
+                    health_score=report.overall_health_score,
+                )
 
         except Exception as e:
             logger.error(f"Failed to send health alert: {str(e)}")
