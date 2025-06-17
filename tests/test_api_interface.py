@@ -114,65 +114,51 @@ def test_client(test_settings, mock_storage, mock_orchestrator):
     # Ensure test_settings has the correct test token
     test_settings.api_tokens = ["test-token-123"]
 
-    # DIRECT MODULE ATTRIBUTE PATCHING STRATEGY:
-    # Patch the imported get_settings reference directly in the auth module
-    # This addresses the module-level import issue
+    # Create a comprehensive mock for verify_api_token that always succeeds with test token
+    def mock_verify_api_token(token: str) -> bool:
+        return token == "test-token-123"
 
-    # Clear any cached settings before starting
-    from src.webdeface.config.settings import get_settings
+    patches = [
+        # Core settings patching for ALL possible import paths
+        patch("src.webdeface.config.get_settings", return_value=test_settings),
+        patch("src.webdeface.config.settings.get_settings", return_value=test_settings),
+        patch("src.webdeface.api.app.get_settings", return_value=test_settings),
+        patch("src.webdeface.api.auth.get_settings", return_value=test_settings),
+        # Mock the auth verification function directly
+        patch("src.webdeface.api.auth.verify_api_token", side_effect=mock_verify_api_token),
+        # Storage and orchestrator mocks
+        patch(
+            "src.webdeface.api.app.get_storage_manager",
+            side_effect=mock_get_storage_manager,
+        ),
+        patch(
+            "src.webdeface.api.app.get_scheduling_orchestrator",
+            side_effect=mock_get_scheduling_orchestrator,
+        ),
+        patch(
+            "src.webdeface.api.app.cleanup_scheduling_orchestrator",
+            return_value=AsyncMock(),
+        ),
+        # Mock external service clients
+        patch("src.webdeface.classifier.claude.AsyncAnthropic"),
+        patch("src.webdeface.classifier.vectorizer.SentenceTransformer"),
+        patch("src.webdeface.scraper.browser.async_playwright"),
+    ]
 
-    get_settings.cache_clear()
+    # Apply all patches using ExitStack for clean management
+    with ExitStack() as stack:
+        for p in patches:
+            stack.enter_context(p)
 
-    # Import auth module to access its get_settings reference
-    from src.webdeface.api import auth
+        app = create_app(test_settings)
 
-    # Store original reference for cleanup
-    original_get_settings = auth.get_settings
+        # Set up app state with test dependencies and settings
+        app.state.storage = mock_storage
+        app.state.orchestrator = mock_orchestrator
+        app.state.settings = test_settings
+        app.state.api_tokens = ["test-token-123"]
 
-    # Replace the auth module's get_settings reference directly
-    auth.get_settings = lambda: test_settings
-
-    try:
-        patches = [
-            # Core settings patching for other modules
-            patch("src.webdeface.config.get_settings", return_value=test_settings),
-            patch(
-                "src.webdeface.config.settings.get_settings", return_value=test_settings
-            ),
-            patch("src.webdeface.api.app.get_settings", return_value=test_settings),
-            # Storage and orchestrator mocks
-            patch(
-                "src.webdeface.api.app.get_storage_manager",
-                side_effect=mock_get_storage_manager,
-            ),
-            patch(
-                "src.webdeface.api.app.get_scheduling_orchestrator",
-                side_effect=mock_get_scheduling_orchestrator,
-            ),
-            patch(
-                "src.webdeface.api.app.cleanup_scheduling_orchestrator",
-                return_value=AsyncMock(),
-            ),
-        ]
-
-        # Apply all patches using ExitStack for clean management
-        with ExitStack() as stack:
-            for p in patches:
-                stack.enter_context(p)
-
-            app = create_app(test_settings)
-
-            # Set up app state with test dependencies and settings
-            app.state.storage = mock_storage
-            app.state.orchestrator = mock_orchestrator
-            app.state.settings = test_settings
-            app.state.api_tokens = ["test-token-123"]
-
-            yield TestClient(app)
-
-    finally:
-        # Restore original reference
-        auth.get_settings = original_get_settings
+        yield TestClient(app)
 
 
 class TestAuthenticationAPI:

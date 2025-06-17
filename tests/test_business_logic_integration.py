@@ -10,6 +10,7 @@ from src.webdeface.classifier import (
     cleanup_classification_orchestrator,
     get_classification_orchestrator,
 )
+from src.webdeface.classifier.pipeline import ThreatCategory
 from src.webdeface.scraper import (
     cleanup_scraping_orchestrator,
     get_scraping_orchestrator,
@@ -93,6 +94,7 @@ class TestBusinessLogicIntegration:
                         confidence_score=0.95,
                         confidence_level=ConfidenceLevel.VERY_HIGH,
                         reasoning="Strong indicators of defacement detected",
+                        threat_category=ThreatCategory.DEFACEMENT,
                         claude_result=Mock(),
                         semantic_analysis={"risk_level": "critical"},
                         rule_based_result=Mock(),
@@ -129,15 +131,8 @@ class TestBusinessLogicIntegration:
                     assert classification_orchestrator.total_jobs_queued == 1
 
         finally:
-            # Cleanup with event loop awareness
-            try:
-                loop = asyncio.get_running_loop()
-                if not loop.is_closed():
-                    await cleanup_scraping_orchestrator()
-                    await cleanup_classification_orchestrator()
-            except (RuntimeError, AttributeError):
-                # Event loop not available or closed
-                pass
+            # Cleanup is handled by the global async_cleanup fixture
+            pass
 
     @pytest.mark.asyncio
     async def test_benign_content_classification_flow(self, setup_test_environment):
@@ -164,6 +159,7 @@ class TestBusinessLogicIntegration:
                     confidence_score=0.85,
                     confidence_level=ConfidenceLevel.HIGH,
                     reasoning="Content appears to be legitimate updates",
+                    threat_category=ThreatCategory.UNKNOWN,
                     claude_result=Mock(),
                     semantic_analysis={"risk_level": "low"},
                     rule_based_result=Mock(),
@@ -203,14 +199,8 @@ class TestBusinessLogicIntegration:
                 # In real scenario, we'd check that alerts_generated count is 0
 
         finally:
-            # Cleanup with event loop awareness
-            try:
-                loop = asyncio.get_running_loop()
-                if not loop.is_closed():
-                    await cleanup_classification_orchestrator()
-            except (RuntimeError, AttributeError):
-                # Event loop not available or closed
-                pass
+            # Cleanup is handled by the global async_cleanup fixture
+            pass
 
     @pytest.mark.asyncio
     async def test_error_handling_in_business_logic(self, setup_test_environment):
@@ -245,14 +235,8 @@ class TestBusinessLogicIntegration:
                 # In real scenario, we'd check failed job counts
 
         finally:
-            # Cleanup with event loop awareness
-            try:
-                loop = asyncio.get_running_loop()
-                if not loop.is_closed():
-                    await cleanup_classification_orchestrator()
-            except (RuntimeError, AttributeError):
-                # Event loop not available or closed
-                pass
+            # Cleanup is handled by the global async_cleanup fixture
+            pass
 
     @pytest.mark.asyncio
     async def test_feedback_integration(self, setup_test_environment):
@@ -271,6 +255,7 @@ class TestBusinessLogicIntegration:
             confidence_score=0.7,
             confidence_level=ConfidenceLevel.HIGH,
             reasoning="AI classified as benign",
+            threat_category=ThreatCategory.UNKNOWN,
         )
 
         with patch.object(feedback_collector, "_store_feedback"), patch.object(
@@ -341,15 +326,8 @@ class TestBusinessLogicIntegration:
             assert "components_healthy" in classification_health
 
         finally:
-            # Cleanup with event loop awareness
-            try:
-                loop = asyncio.get_running_loop()
-                if not loop.is_closed():
-                    await cleanup_scraping_orchestrator()
-                    await cleanup_classification_orchestrator()
-            except (RuntimeError, AttributeError):
-                # Event loop not available or closed
-                pass
+            # Cleanup is handled by the global async_cleanup fixture
+            pass
 
     @pytest.mark.asyncio
     async def test_comprehensive_statistics(self, setup_test_environment):
@@ -384,15 +362,8 @@ class TestBusinessLogicIntegration:
             assert "health_status" in performance_report
 
         finally:
-            # Cleanup with event loop awareness
-            try:
-                loop = asyncio.get_running_loop()
-                if not loop.is_closed():
-                    await cleanup_scraping_orchestrator()
-                    await cleanup_classification_orchestrator()
-            except (RuntimeError, AttributeError):
-                # Event loop not available or closed
-                pass
+            # Cleanup is handled by the global async_cleanup fixture
+            pass
 
 
 @pytest.mark.integration
@@ -431,14 +402,8 @@ class TestBusinessLogicStressTest:
                 assert stats["total_jobs_queued"] == 5
 
             finally:
-                # Cleanup with event loop awareness
-                try:
-                    loop = asyncio.get_running_loop()
-                    if not loop.is_closed():
-                        await cleanup_classification_orchestrator()
-                except (RuntimeError, AttributeError):
-                    # Event loop not available or closed
-                    pass
+                # Cleanup is handled by the global async_cleanup fixture
+                pass
 
     @pytest.mark.asyncio
     async def test_queue_overflow_handling(self):
@@ -470,14 +435,8 @@ class TestBusinessLogicStressTest:
                 # Some jobs might fail due to queue limits, which is expected
 
             finally:
-                # Cleanup with event loop awareness
-                try:
-                    loop = asyncio.get_running_loop()
-                    if not loop.is_closed():
-                        await cleanup_scraping_orchestrator()
-                except (RuntimeError, AttributeError):
-                    # Event loop not available or closed
-                    pass
+                # Cleanup is handled by the global async_cleanup fixture
+                pass
 
 
 if __name__ == "__main__":

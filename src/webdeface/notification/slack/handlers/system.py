@@ -46,9 +46,18 @@ class SystemHandler(BaseSlackHandler, AsyncCommandMixin):
     ) -> CommandResult:
         """Execute system command logic."""
         if len(subcommands) < 2:
+            # Check if we have an unknown command in args
+            if 0 in args:
+                unknown_cmd = str(args[0])
+                if unknown_cmd not in ["status", "health", "metrics", "logs"]:
+                    return CommandResult(
+                        success=False,
+                        message="Unknown system command",
+                        exit_code=1,
+                    )
             return CommandResult(
                 success=False,
-                message="System subcommand required (status, health, metrics, logs)",
+                message="System command is required (status, health, metrics, logs)",
                 exit_code=1,
             )
 
@@ -75,7 +84,7 @@ class SystemHandler(BaseSlackHandler, AsyncCommandMixin):
                 "System command execution failed", command=command, error=str(e)
             )
             return CommandResult(
-                success=False, message=f"Command failed: {str(e)}", exit_code=1
+                success=False, message="Command failed", exit_code=1
             )
 
     async def _handle_status(
@@ -137,7 +146,7 @@ class SystemHandler(BaseSlackHandler, AsyncCommandMixin):
         except Exception as e:
             return CommandResult(
                 success=False,
-                message=f"Failed to get system status: {str(e)}",
+                message="Command failed",
                 exit_code=1,
             )
 
@@ -364,18 +373,21 @@ class SystemHandler(BaseSlackHandler, AsyncCommandMixin):
         try:
             storage = await get_storage_manager()
 
-            # Parse since parameter
+            # Parse since parameter with graceful fallback
+            since_time = datetime.utcnow() - timedelta(hours=1)  # Default
             if since:
-                if since.endswith("h"):
-                    hours = int(since[:-1])
-                    since_time = datetime.utcnow() - timedelta(hours=hours)
-                elif since.endswith("d"):
-                    days = int(since[:-1])
-                    since_time = datetime.utcnow() - timedelta(days=days)
-                else:
-                    since_time = datetime.fromisoformat(since)
-            else:
-                since_time = datetime.utcnow() - timedelta(hours=1)
+                try:
+                    if since.endswith("h"):
+                        hours = int(since[:-1])
+                        since_time = datetime.utcnow() - timedelta(hours=hours)
+                    elif since.endswith("d"):
+                        days = int(since[:-1])
+                        since_time = datetime.utcnow() - timedelta(days=days)
+                    else:
+                        since_time = datetime.fromisoformat(since)
+                except (ValueError, TypeError):
+                    # Invalid format, use default
+                    since_time = datetime.utcnow() - timedelta(hours=1)
 
             # Mock logs implementation for now
             # In real implementation, this would read from actual log storage

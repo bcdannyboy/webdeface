@@ -40,7 +40,7 @@ class SlackCommandParser:
         # Pattern to match quoted arguments
         self.quoted_pattern = re.compile(r'"([^"]*)"')
 
-    async def parse_command(self, text: str) -> ParseResult:
+    def parse_command(self, text: str) -> ParseResult:
         """
         Parse Slack command text into CLI-compatible arguments and flags.
 
@@ -308,8 +308,7 @@ def parse_slack_command(text: str) -> tuple[list[str], dict[str, Any], dict[str,
         Tuple of (subcommands, args, flags) for backward compatibility
     """
     parser = SlackCommandParser()
-    result = parser.parse_command(text)
-    return result.subcommands, result.args, result.flags
+    return parser.parse_command_sync(text)
 
 
 def extract_flags(text: str) -> dict[str, Any]:
@@ -323,8 +322,8 @@ def extract_flags(text: str) -> dict[str, Any]:
         Dict of flag key-value pairs
     """
     parser = SlackCommandParser()
-    result = parser.parse_command(text)
-    return result.flags
+    _, _, flags = parser.parse_command_sync(text)
+    return flags
 
 
 def extract_global_flags(flags: dict[str, Any]) -> dict[str, Any]:

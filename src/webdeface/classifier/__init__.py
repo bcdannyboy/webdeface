@@ -46,11 +46,11 @@ from .orchestrator import (
     get_classification_orchestrator,
 )
 from .pipeline import (
-    ClassificationPipeline,
+    EnhancedClassificationPipeline,
     ClassificationPipelineResult,
-    ConfidenceCalculator,
+    AdvancedConfidenceCalculator,
     ConfidenceLevel,
-    RuleBasedClassifier,
+    ComprehensiveRuleBasedClassifier,
     cleanup_classification_pipeline,
     get_classification_pipeline,
 )
@@ -99,9 +99,9 @@ __all__ = [
     "get_content_vectorizer",
     "cleanup_content_vectorizer",
     # Classification Pipeline
-    "ClassificationPipeline",
-    "RuleBasedClassifier",
-    "ConfidenceCalculator",
+    "EnhancedClassificationPipeline",
+    "ComprehensiveRuleBasedClassifier",
+    "AdvancedConfidenceCalculator",
     "get_classification_pipeline",
     "cleanup_classification_pipeline",
     # Alerts

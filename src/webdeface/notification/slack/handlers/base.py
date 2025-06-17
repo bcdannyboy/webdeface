@@ -83,7 +83,7 @@ class BaseSlackHandler(ABC):
                 })()
             else:
                 # Parse command from text (normal mode)
-                parse_result = await self.parser.parse_command(text)
+                parse_result = self.parser.parse_command(text)
 
                 if not parse_result.success:
                     await self._send_validation_error(respond, parse_result.error_message)

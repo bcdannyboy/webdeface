@@ -29,6 +29,11 @@ def setup_auth(app, settings) -> None:
 
 def verify_api_token(token: str) -> bool:
     """Verify API token."""
+    # Handle None token case
+    if token is None:
+        logger.debug("Token verification result", token_valid=False)
+        return False
+        
     settings = get_settings()
     valid_tokens = getattr(settings, "api_tokens", ["dev-token-12345"])
 

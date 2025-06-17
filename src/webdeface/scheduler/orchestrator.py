@@ -146,7 +146,7 @@ class SchedulingOrchestrator(AsyncContextManager, SchedulingOrchestratorInterfac
         )
 
         await self.scheduler_manager.schedule_job(
-            job_config=health_check_config, job_func=self._execute_health_check_workflow
+            job_config=health_check_config, job_func=_execute_health_check_workflow
         )
 
         # System maintenance job
@@ -161,7 +161,7 @@ class SchedulingOrchestrator(AsyncContextManager, SchedulingOrchestratorInterfac
         )
 
         await self.scheduler_manager.schedule_job(
-            job_config=maintenance_config, job_func=self._execute_maintenance_tasks
+            job_config=maintenance_config, job_func=_execute_maintenance_tasks
         )
 
         logger.info("System jobs scheduled")
@@ -196,7 +196,7 @@ class SchedulingOrchestrator(AsyncContextManager, SchedulingOrchestratorInterfac
                 # Schedule monitoring workflow
                 await self.scheduler_manager.schedule_job(
                     job_config=job_config,
-                    job_func=self._execute_monitoring_workflow,
+                    job_func=_execute_monitoring_workflow,
                     args=(website.id,),
                 )
 
@@ -371,7 +371,7 @@ class SchedulingOrchestrator(AsyncContextManager, SchedulingOrchestratorInterfac
             # Schedule the job
             execution_id = await self.scheduler_manager.schedule_job(
                 job_config=job_config,
-                job_func=self._execute_monitoring_workflow,
+                job_func=_execute_monitoring_workflow,
                 args=(website_id,),
             )
 
@@ -481,6 +481,47 @@ class SchedulingOrchestrator(AsyncContextManager, SchedulingOrchestratorInterfac
         except Exception as e:
             logger.error(f"Failed to get orchestrator status: {str(e)}")
             return {"status": "error", "error": str(e)}
+
+    async def get_status(self) -> dict[str, Any]:
+        """Get basic scheduler status - simpler version of get_orchestrator_status."""
+        
+        if not self.is_running:
+            return {
+                "status": "stopped",
+                "active_jobs": 0,
+                "pending_jobs": 0,
+                "uptime_seconds": 0,
+            }
+
+        try:
+            # Get basic scheduler statistics
+            scheduler_stats = await self.scheduler_manager.get_scheduler_stats()
+            
+            # Calculate uptime
+            uptime = 0
+            if self.start_time:
+                uptime = int((datetime.utcnow() - self.start_time).total_seconds())
+
+            # Safely access scheduler stats attributes
+            active_jobs = getattr(scheduler_stats, 'active_jobs', 0)
+            pending_jobs = getattr(scheduler_stats, 'pending_jobs', 0)
+
+            return {
+                "status": "running",
+                "active_jobs": active_jobs,
+                "pending_jobs": pending_jobs,
+                "uptime_seconds": uptime,
+            }
+
+        except Exception as e:
+            logger.error(f"Failed to get scheduler status: {str(e)}")
+            return {
+                "status": "error",
+                "active_jobs": 0,
+                "pending_jobs": 0,
+                "uptime_seconds": 0,
+                "error": str(e)
+            }
 
     async def get_monitoring_report(self) -> Optional[MonitoringReport]:
         """Get the latest comprehensive monitoring report."""
@@ -597,3 +638,145 @@ async def cleanup_scheduling_orchestrator() -> None:
         except Exception as e:
             logger.error(f"Error during scheduling orchestrator cleanup: {str(e)}")
             _scheduling_orchestrator = None
+
+
+# Standalone functions for APScheduler compatibility (no 'self' references)
+async def _execute_monitoring_workflow(website_id: str) -> dict[str, Any]:
+    """Execute the complete monitoring workflow for a website."""
+    try:
+        logger.info("Starting monitoring workflow", website_id=website_id)
+
+        # Get workflow engine
+        from .workflow import get_workflow_engine
+        workflow_engine = await get_workflow_engine()
+        
+        # Execute website monitoring workflow
+        execution_id = await workflow_engine.execute_workflow(
+            workflow_id="website_monitoring",
+            website_id=website_id,
+            parameters={"priority": "normal"},
+        )
+
+        return {
+            "workflow_execution_id": execution_id,
+            "website_id": website_id,
+            "status": "initiated",
+        }
+
+    except Exception as e:
+        logger.error(
+            "Monitoring workflow failed", website_id=website_id, error=str(e)
+        )
+        raise
+
+
+async def _execute_health_check_workflow() -> dict[str, Any]:
+    """Execute the system health check workflow."""
+    try:
+        logger.info("Starting health check workflow")
+
+        # Get workflow engine
+        from .workflow import get_workflow_engine
+        workflow_engine = await get_workflow_engine()
+        
+        # Execute health check workflow
+        execution_id = await workflow_engine.execute_workflow(
+            workflow_id="system_health_check",
+            website_id="system",
+            parameters={"check_level": "comprehensive"},
+        )
+
+        return {"workflow_execution_id": execution_id, "status": "initiated"}
+
+    except Exception as e:
+        logger.error("Health check workflow failed", error=str(e))
+        raise
+
+
+async def _execute_maintenance_tasks() -> dict[str, Any]:
+    """Execute system maintenance tasks."""
+    try:
+        logger.info("Starting maintenance tasks")
+
+        maintenance_results = {}
+
+        # Clean up old job executions
+        cleanup_result = await _cleanup_old_executions()
+        maintenance_results["cleanup"] = cleanup_result
+
+        # Update job statistics
+        stats_result = await _update_job_statistics()
+        maintenance_results["statistics"] = stats_result
+
+        # Optimize database
+        optimize_result = await _optimize_database()
+        maintenance_results["optimization"] = optimize_result
+
+        logger.info("Maintenance tasks completed", results=maintenance_results)
+
+        return maintenance_results
+
+    except Exception as e:
+        logger.error("Maintenance tasks failed", error=str(e))
+        raise
+
+
+async def _cleanup_old_executions() -> dict[str, Any]:
+    """Clean up old job execution records."""
+    try:
+        # Keep executions for last 30 days
+        cutoff_date = datetime.utcnow() - timedelta(days=30)
+
+        # This would delete old execution records from database
+        # For now, just return mock result
+
+        return {"records_cleaned": 0, "cutoff_date": cutoff_date.isoformat()}
+
+    except Exception as e:
+        logger.error(f"Failed to cleanup old executions: {str(e)}")
+        return {"error": str(e)}
+
+
+async def _update_job_statistics() -> dict[str, Any]:
+    """Update job performance statistics."""
+    try:
+        from .manager import get_scheduler_manager
+        scheduler_manager = await get_scheduler_manager()
+        stats = await scheduler_manager.get_scheduler_stats()
+
+        # Store updated statistics
+        # This would persist stats to database
+
+        return {
+            "total_jobs": stats.total_jobs,
+            "success_rate": stats.success_rate,
+            "average_duration": stats.average_job_duration,
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to update job statistics: {str(e)}")
+        return {"error": str(e)}
+
+
+async def _optimize_database() -> dict[str, Any]:
+    """Optimize database performance."""
+    try:
+        storage = await get_storage_manager()
+
+        # Run database optimization tasks
+        # This would include VACUUM, ANALYZE, etc.
+
+        return {
+            "optimization_completed": True,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to optimize database: {str(e)}")
+        return {"error": str(e)}
+
+
+async def get_health_monitor():
+    """Get the health monitor instance from the monitoring module."""
+    from .monitoring import get_health_monitor as _get_health_monitor
+    return await _get_health_monitor()

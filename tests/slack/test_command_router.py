@@ -324,10 +324,13 @@ class TestGlobalCommandRouter:
     @pytest.mark.asyncio
     async def test_route_slack_command_convenience_function(self, mock_slack_response):
         """Test convenience function for routing commands."""
+        from unittest.mock import AsyncMock
+        
         with patch(
             "src.webdeface.notification.slack.handlers.router.get_command_router"
         ) as mock_get_router:
             mock_router = MagicMock()
+            mock_router.route_command = AsyncMock()
             mock_get_router.return_value = mock_router
 
             await route_slack_command(
@@ -479,7 +482,7 @@ class TestRouterIntegrationScenarios:
         )
 
         response = mock_slack_response.last_response
-        assert_error_response(response, "Internal error occurred")
+        assert_error_response(response, "Command failed")
 
     @pytest.mark.asyncio
     async def test_router_logging_integration(

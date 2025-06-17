@@ -13,19 +13,20 @@ from src.webdeface.classifier import (
     AlertType,
     Classification,
     ClassificationOrchestrator,
-    ClassificationPipeline,
+    EnhancedClassificationPipeline,
     ClassificationRequest,
     ClassificationResult,
     ClaudeClient,
-    ConfidenceCalculator,
+    AdvancedConfidenceCalculator,
     ConfidenceLevel,
     ContentVector,
     ContentVectorizer,
     DefacementPromptLibrary,
     FeedbackCollector,
     ModelPerformanceTracker,
-    RuleBasedClassifier,
+    ComprehensiveRuleBasedClassifier,
 )
+from src.webdeface.classifier.pipeline import ThreatCategory
 
 
 class TestClassification:
@@ -108,9 +109,11 @@ class TestClaudeClient:
     @pytest.mark.asyncio
     async def test_classify_content(self, claude_client):
         """Test content classification with Claude."""
-        with patch.object(claude_client, "_ensure_client"), patch.object(
-            claude_client, "_rate_limit"
-        ), patch.object(claude_client, "client") as mock_client:
+        # Mock the Claude client completely to prevent real API calls
+        with patch("src.webdeface.classifier.claude.AsyncAnthropic") as mock_anthropic_class:
+            mock_anthropic_instance = AsyncMock()
+            mock_anthropic_class.return_value = mock_anthropic_instance
+            
             # Mock Claude API response
             mock_response = Mock()
             mock_response.content = [
@@ -118,10 +121,11 @@ class TestClaudeClient:
                     text='{"classification": "defacement", "confidence": 0.9, "reasoning": "Test"}'
                 )
             ]
+            mock_response.usage = Mock()
             mock_response.usage.input_tokens = 100
             mock_response.usage.output_tokens = 50
 
-            mock_client.messages.create = AsyncMock(return_value=mock_response)
+            mock_anthropic_instance.messages.create = AsyncMock(return_value=mock_response)
 
             result = await claude_client.classify_content(
                 changed_content=["Hacked by test"],
@@ -133,14 +137,26 @@ class TestClaudeClient:
             assert result.label == Classification.DEFACEMENT
             assert result.confidence == 0.9
             assert result.tokens_used == 150
+            
+            # Verify no real API calls were made
+            mock_anthropic_instance.messages.create.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_batch_classify(self, claude_client):
         """Test batch classification."""
-        with patch.object(claude_client, "classify_content") as mock_classify:
-            mock_classify.return_value = ClassificationResult(
-                label=Classification.BENIGN, explanation="Test", confidence=0.7
-            )
+        # Mock the Claude client completely to prevent any real API calls
+        with patch("src.webdeface.classifier.claude.AsyncAnthropic") as mock_anthropic_class:
+            mock_anthropic_instance = AsyncMock()
+            mock_anthropic_class.return_value = mock_anthropic_instance
+            
+            # Mock response for each call
+            mock_response = Mock()
+            mock_response.content = [Mock(text='{"classification": "benign", "confidence": 0.7, "reasoning": "Test"}')]
+            mock_response.usage = Mock()
+            mock_response.usage.input_tokens = 100
+            mock_response.usage.output_tokens = 50
+            
+            mock_anthropic_instance.messages.create = AsyncMock(return_value=mock_response)
 
             requests = [
                 {
@@ -159,6 +175,8 @@ class TestClaudeClient:
 
             assert len(results) == 2
             assert all(isinstance(r, ClassificationResult) for r in results)
+            # Verify that no real API calls were made, only mocked ones
+            assert mock_anthropic_instance.messages.create.call_count >= 2
 
 
 class TestContentVectorizer:
@@ -209,11 +227,11 @@ class TestContentVectorizer:
 
 
 class TestRuleBasedClassifier:
-    """Test the RuleBasedClassifier implementation."""
+    """Test the ComprehensiveRuleBasedClassifier implementation."""
 
     @pytest.fixture
     def classifier(self):
-        return RuleBasedClassifier()
+        return ComprehensiveRuleBasedClassifier()
 
     def test_defacement_detection(self, classifier):
         """Test detection of defacement keywords."""
@@ -245,11 +263,11 @@ class TestRuleBasedClassifier:
 
 
 class TestConfidenceCalculator:
-    """Test the ConfidenceCalculator implementation."""
+    """Test the AdvancedConfidenceCalculator implementation."""
 
     @pytest.fixture
     def calculator(self):
-        return ConfidenceCalculator()
+        return AdvancedConfidenceCalculator()
 
     def test_calculate_agreement(self, calculator):
         """Test agreement calculation between classifiers."""
@@ -274,6 +292,8 @@ class TestConfidenceCalculator:
         rule_result = Mock()
         rule_result.confidence = 0.8
         rule_result.classification = Classification.DEFACEMENT
+        rule_result.threat_indicators = []  # Empty list for mock
+        rule_result.threat_category = ThreatCategory.DEFACEMENT
 
         confidence, weights, metrics = calculator.calculate_confidence(
             claude_result=claude_result,
@@ -295,11 +315,11 @@ class TestConfidenceCalculator:
 
 
 class TestClassificationPipeline:
-    """Test the ClassificationPipeline implementation."""
+    """Test the EnhancedClassificationPipeline implementation."""
 
     @pytest.fixture
     def pipeline(self):
-        return ClassificationPipeline()
+        return EnhancedClassificationPipeline()
 
     @pytest.mark.asyncio
     async def test_classification_pipeline(self, pipeline):
@@ -330,6 +350,8 @@ class TestClassificationPipeline:
             mock_rule_result = Mock()
             mock_rule_result.classification = Classification.BENIGN
             mock_rule_result.confidence = 0.7
+            mock_rule_result.threat_indicators = []  # Empty list for mock
+            mock_rule_result.threat_category = ThreatCategory.UNKNOWN
             mock_rule.return_value = mock_rule_result
 
             result = await pipeline.classify(request)
@@ -357,6 +379,7 @@ class TestAlertGenerator:
             confidence_score=0.9,
             confidence_level=ConfidenceLevel.VERY_HIGH,
             reasoning="Test reasoning",
+            threat_category=ThreatCategory.DEFACEMENT,
         )
 
         context = AlertContext(
@@ -417,6 +440,7 @@ class TestFeedbackCollector:
             confidence_score=0.8,
             confidence_level=ConfidenceLevel.HIGH,
             reasoning="Original reasoning",
+            threat_category=ThreatCategory.UNKNOWN,
         )
 
         with patch.object(feedback_collector, "_store_feedback"), patch.object(
@@ -589,6 +613,8 @@ class TestClassifierIntegration:
                 mock_rule_result = Mock()
                 mock_rule_result.classification = Classification.DEFACEMENT
                 mock_rule_result.confidence = 0.8
+                mock_rule_result.threat_indicators = []  # Empty list for mock
+                mock_rule_result.threat_category = ThreatCategory.DEFACEMENT
                 mock_rule.return_value = mock_rule_result
 
                 # Run classification
@@ -610,6 +636,7 @@ class TestClassifierIntegration:
             confidence_score=0.9,
             confidence_level=ConfidenceLevel.VERY_HIGH,
             reasoning="High confidence defacement detection",
+            threat_category=ThreatCategory.DEFACEMENT,
         )
 
         context = AlertContext(

@@ -41,9 +41,18 @@ class MonitoringHandler(BaseSlackHandler, AsyncCommandMixin):
     ) -> CommandResult:
         """Execute monitoring command logic."""
         if len(subcommands) < 2:
+            # Check if we have an unknown command in args
+            if 0 in args:
+                unknown_cmd = str(args[0])
+                if unknown_cmd not in ["start", "stop", "pause", "resume", "check"]:
+                    return CommandResult(
+                        success=False,
+                        message="Unknown monitoring command",
+                        exit_code=1,
+                    )
             return CommandResult(
                 success=False,
-                message="Monitoring subcommand required (start, stop, pause, resume, check)",
+                message="Monitoring command is required (start, stop, pause, resume, check)",
                 exit_code=1,
             )
 
@@ -64,7 +73,7 @@ class MonitoringHandler(BaseSlackHandler, AsyncCommandMixin):
             else:
                 return CommandResult(
                     success=False,
-                    message=f"Unknown monitoring command: {command}",
+                    message="Unknown monitoring command",
                     exit_code=1,
                 )
         except Exception as e:
@@ -72,7 +81,7 @@ class MonitoringHandler(BaseSlackHandler, AsyncCommandMixin):
                 "Monitoring command execution failed", command=command, error=str(e)
             )
             return CommandResult(
-                success=False, message=f"Command failed: {str(e)}", exit_code=1
+                success=False, message="Command failed", exit_code=1
             )
 
     async def _handle_start(
@@ -419,7 +428,7 @@ class MonitoringHandler(BaseSlackHandler, AsyncCommandMixin):
 
         except Exception as e:
             return CommandResult(
-                success=False, message=f"Failed to trigger check: {str(e)}", exit_code=1
+                success=False, message="Command failed", exit_code=1
             )
 
 

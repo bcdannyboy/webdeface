@@ -33,6 +33,71 @@ from .types import (
 
 logger = get_structured_logger(__name__)
 
+# Global job registry for serialization-safe execution (outside of class to avoid serialization)
+_global_job_registry: dict[str, dict[str, Any]] = {}
+
+# Global function registry to map string identifiers to actual functions
+_global_function_registry: dict[str, Callable] = {}
+
+
+def register_job_function(name: str, func: Callable) -> None:
+    """Register a job function with a string identifier."""
+    _global_function_registry[name] = func
+
+
+def get_job_function(name: str) -> Callable:
+    """Get a job function by string identifier."""
+    if name not in _global_function_registry:
+        raise SchedulerError(f"Job function '{name}' not found in registry")
+    return _global_function_registry[name]
+
+
+async def _execute_job_wrapper_standalone(job_id: str) -> None:
+    """Standalone wrapper for job execution with monitoring and error handling."""
+    try:
+        # Look up job details from global registry
+        if job_id not in _global_job_registry:
+            raise SchedulerError(f"Job {job_id} not found in registry")
+
+        job_data = _global_job_registry[job_id]
+        func_name = job_data["job_func_name"]
+        args = job_data["args"]
+        kwargs = job_data["kwargs"]
+        execution_id = job_data["execution_id"]
+        job_config = job_data["job_config"]
+
+        # Get the actual function from the function registry
+        job_func = get_job_function(func_name)
+
+        logger.info(
+            "Starting job execution",
+            execution_id=execution_id,
+            job_id=job_id,
+            job_type=job_config.job_type.value,
+        )
+
+        # Execute the actual job function
+        if asyncio.iscoroutinefunction(job_func):
+            result = await job_func(*args, **kwargs)
+        else:
+            result = job_func(*args, **kwargs)
+
+        logger.info(
+            "Job execution completed",
+            execution_id=execution_id,
+            job_id=job_id,
+            job_type=job_config.job_type.value,
+        )
+
+    except Exception as e:
+        logger.error(
+            "Job execution failed",
+            execution_id=execution_id if 'execution_id' in locals() else "unknown",
+            job_id=job_id,
+            error=str(e),
+        )
+        raise
+
 
 class SchedulerManager(AsyncContextManager):
     """Manages APScheduler with database persistence and monitoring."""
@@ -132,6 +197,7 @@ class SchedulerManager(AsyncContextManager):
 
             self.is_running = False
             self._active_jobs.clear()
+            # Note: We don't clear the global registry here as it might be used by other instances
 
             logger.info("APScheduler manager stopped")
 
@@ -200,6 +266,7 @@ class SchedulerManager(AsyncContextManager):
         """Handle job removal."""
         job_id = event.job_id
         self._active_jobs.pop(job_id, None)
+        _global_job_registry.pop(job_id, None)  # Clean up global registry
         logger.debug(f"Job removed: {job_id}")
 
     async def schedule_job(
@@ -224,15 +291,31 @@ class SchedulerManager(AsyncContextManager):
             await self._create_job_execution(execution)
             self._active_jobs[job_config.job_id] = execution
 
-            # Schedule with APScheduler
+            # Get function name for registry
+            func_name = getattr(job_func, '__name__', str(job_func))
+            
+            # Register function if not already registered
+            if func_name not in _global_function_registry:
+                register_job_function(func_name, job_func)
+
+            # Register job details in global registry for serialization-safe access
+            _global_job_registry[job_config.job_id] = {
+                "job_func_name": func_name,  # Store function name instead of function object
+                "args": args,
+                "kwargs": kwargs,
+                "execution_id": execution.execution_id,
+                "job_config": job_config,
+            }
+
+            # Schedule with APScheduler using only serializable arguments
             job = self.scheduler.add_job(
-                func=self._execute_job_wrapper,
+                func=_execute_job_wrapper_standalone,  # Use standalone function
                 trigger="cron"
                 if self._is_cron_expression(job_config.interval)
                 else "interval",
                 **self._parse_schedule_config(job_config.interval),
                 id=job_config.job_id,
-                args=[execution, job_func, args, kwargs],
+                args=[job_config.job_id],  # Only pass the job ID, which is serializable
                 name=f"{job_config.job_type.value}-{job_config.website_id}",
                 replace_existing=True,
                 max_instances=1,
@@ -252,51 +335,10 @@ class SchedulerManager(AsyncContextManager):
             logger.error(f"Failed to schedule job {job_config.job_id}: {str(e)}")
             raise SchedulerError(f"Job scheduling failed: {str(e)}")
 
-    async def _execute_job_wrapper(
-        self, execution: JobExecution, job_func: Callable, args: tuple, kwargs: dict
-    ) -> None:
+    async def _execute_job_wrapper(self, job_id: str) -> None:
         """Wrapper for job execution with monitoring and error handling."""
-
-        async with self._job_semaphore:
-            self._current_job_count += 1
-
-            try:
-                execution.started_at = datetime.utcnow()
-                execution.status = JobStatus.RUNNING
-
-                await self._update_job_execution(execution)
-
-                logger.info(
-                    "Starting job execution",
-                    execution_id=execution.execution_id,
-                    job_id=execution.job_id,
-                    job_type=execution.job_type.value,
-                )
-
-                # Execute the actual job function
-                if asyncio.iscoroutinefunction(job_func):
-                    result = await job_func(*args, **kwargs)
-                else:
-                    result = job_func(*args, **kwargs)
-
-                # Update execution with results
-                execution.result_data = (
-                    result if isinstance(result, dict) else {"result": str(result)}
-                )
-
-                self.total_jobs_executed += 1
-
-            except Exception as e:
-                logger.error(
-                    "Job execution failed",
-                    execution_id=execution.execution_id,
-                    job_id=execution.job_id,
-                    error=str(e),
-                )
-                raise
-
-            finally:
-                self._current_job_count -= 1
+        # This method should no longer be used; using standalone function instead
+        await _execute_job_wrapper_standalone(job_id)
 
     async def _handle_job_retry(
         self, execution: JobExecution, exception: Exception
@@ -397,6 +439,7 @@ class SchedulerManager(AsyncContextManager):
         try:
             self.scheduler.remove_job(job_id)
             self._active_jobs.pop(job_id, None)
+            _global_job_registry.pop(job_id, None)  # Clean up global registry
 
             logger.info("Job unscheduled", job_id=job_id)
             return True

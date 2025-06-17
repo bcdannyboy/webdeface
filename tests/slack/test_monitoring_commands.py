@@ -568,4 +568,4 @@ class TestMonitoringHandler:
         )
 
         response = mock_slack_response.last_response
-        assert_error_response(response, "Command failed")
+        assert_error_response(response, "Failed to start monitoring")

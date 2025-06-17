@@ -244,11 +244,11 @@ class SlackResponseFormatter:
         blocks = []
 
         # Handle different data structures
-        if "websites" in data:
+        if "websites" in data and isinstance(data["websites"], list):
             blocks.extend(self._format_websites_table(data["websites"], verbose))
-        elif "alerts" in data:
+        elif "alerts" in data and isinstance(data["alerts"], list):
             blocks.extend(self._format_alerts_table(data["alerts"], verbose))
-        elif "status" in data or "health" in data:
+        elif "status" in data or "health" in data or "scheduler" in data:
             blocks.extend(self._format_status_table(data, verbose))
         elif "metrics" in data:
             blocks.extend(self._format_metrics_table(data["metrics"], verbose))
@@ -467,9 +467,9 @@ class SlackResponseFormatter:
         """Format system status as Slack blocks."""
         blocks = []
 
-        # Main status
-        overall_status = data.get("status", "unknown")
-        status_emoji = "✅" if overall_status == "running" else "⚠️"
+        # Main status header
+        scheduler_status = data.get("scheduler", {}).get("status", "unknown")
+        status_emoji = "✅" if scheduler_status == "running" else "⚠️"
 
         blocks.append(
             {
@@ -478,51 +478,78 @@ class SlackResponseFormatter:
             }
         )
 
-        # Key metrics
+        # Website metrics
         fields = []
-        if "uptime_seconds" in data:
-            uptime_hours = data["uptime_seconds"] / 3600
-            fields.append(
-                {"type": "mrkdwn", "text": f"*Uptime:*\n{uptime_hours:.1f} hours"}
-            )
-
-        if "active_websites" in data:
-            fields.append(
-                {
+        if "websites" in data:
+            websites_data = data["websites"]
+            if isinstance(websites_data, dict):
+                fields.append({
                     "type": "mrkdwn",
-                    "text": f"*Active Sites:*\n{data['active_websites']}",
-                }
-            )
-
-        if "total_jobs_scheduled" in data:
-            fields.append(
-                {
+                    "text": f"*Total Websites:*\n{websites_data.get('total', 0)}"
+                })
+                fields.append({
                     "type": "mrkdwn",
-                    "text": f"*Scheduled Jobs:*\n{data['total_jobs_scheduled']}",
-                }
-            )
+                    "text": f"*Active Sites:*\n{websites_data.get('active', 0)}"
+                })
 
-        if "total_workflows_executed" in data:
-            fields.append(
-                {
+        # Scheduler metrics
+        if "scheduler" in data:
+            scheduler_data = data["scheduler"]
+            if isinstance(scheduler_data, dict):
+                fields.append({
                     "type": "mrkdwn",
-                    "text": f"*Workflows Executed:*\n{data['total_workflows_executed']}",
-                }
-            )
+                    "text": f"*Status:*\n{scheduler_data.get('status', 'unknown').title()}"
+                })
+                fields.append({
+                    "type": "mrkdwn",
+                    "text": f"*Active Jobs:*\n{scheduler_data.get('active_jobs', 0)}"
+                })
+                if scheduler_data.get('uptime_seconds'):
+                    uptime_hours = scheduler_data['uptime_seconds'] / 3600
+                    fields.append({
+                        "type": "mrkdwn",
+                        "text": f"*Uptime:*\n{uptime_hours:.1f} hours"
+                    })
+
+        # Activity metrics
+        if "activity_24h" in data:
+            activity_data = data["activity_24h"]
+            if isinstance(activity_data, dict):
+                fields.append({
+                    "type": "mrkdwn",
+                    "text": f"*Alerts (24h):*\n{activity_data.get('alerts', 0)}"
+                })
+                fields.append({
+                    "type": "mrkdwn",
+                    "text": f"*Open Alerts:*\n{activity_data.get('open_alerts', 0)}"
+                })
 
         if fields:
             blocks.append({"type": "section", "fields": fields})
 
-        # Component status if verbose
-        if verbose and "components" in data:
-            component_text = "*Component Status:*\n"
-            for component, status in data["components"].items():
-                emoji = "✅" if status else "❌"
-                component_text += f"{emoji} {component.replace('_', ' ').title()}\n"
+        # Storage info
+        if "storage" in data and verbose:
+            storage_data = data["storage"]
+            if isinstance(storage_data, dict):
+                storage_text = "*Storage Status:*\n"
+                storage_text += f"✅ Connected: {storage_data.get('connected', False)}\n"
+                storage_text += f"📄 Snapshots: {storage_data.get('total_snapshots', 0)}\n"
+                storage_text += f"🚨 Alerts: {storage_data.get('total_alerts', 0)}"
+                
+                blocks.append({
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": storage_text}
+                })
 
-            blocks.append(
-                {"type": "section", "text": {"type": "mrkdwn", "text": component_text}}
-            )
+        # Timestamp
+        if "timestamp" in data:
+            blocks.append({
+                "type": "context",
+                "elements": [{
+                    "type": "mrkdwn",
+                    "text": f"⏰ Last updated: {data['timestamp'][:19].replace('T', ' ')}"
+                }]
+            })
 
         return blocks
 

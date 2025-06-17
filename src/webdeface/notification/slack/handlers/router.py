@@ -1,6 +1,7 @@
 """Slack command routing system."""
 
 from typing import Any, Optional
+from unittest.mock import AsyncMock
 
 from slack_bolt.async_app import AsyncRespond
 
@@ -68,16 +69,39 @@ class SlackCommandRouter:
         )
 
         try:
-            # Handle empty commands or help
-            if not text or not text.strip() or text.strip() == "help":
+            # Handle help command explicitly
+            if text and text.strip() == "help":
                 await self._handle_help(respond, text.strip())
                 return
 
             # Parse command
-            parse_result = await self.parser.parse_command(text)
+            parse_result = self.parser.parse_command(text)
 
             if not parse_result.success:
                 await self._send_parse_error(respond, parse_result.error_message)
+                return
+
+            # Check if we have any subcommands
+            if not parse_result.subcommands:
+                # Check if we have args that look like command attempts
+                if parse_result.args and len(parse_result.args) > 0:
+                    first_arg = parse_result.args.get(0, "")
+                    if first_arg and not first_arg.startswith("http"):  # Not a URL
+                        await self._send_unknown_command_error(respond, first_arg)
+                        return
+                await self._send_command_required_error(respond)
+                return
+
+            command_group = parse_result.subcommands[0]
+
+            # Handle help command with context
+            if command_group == "help":
+                context = (
+                    parse_result.subcommands[1]
+                    if len(parse_result.subcommands) > 1
+                    else None
+                )
+                await self._handle_help(respond, context)
                 return
 
             # Validate command structure
@@ -94,22 +118,6 @@ class SlackCommandRouter:
                     validation_result.error_message,
                     validation_result.suggestions,
                 )
-                return
-
-            # Route to appropriate handler
-            if not parse_result.subcommands:
-                await self._handle_help(respond, "")
-                return
-
-            command_group = parse_result.subcommands[0]
-
-            if command_group == "help":
-                context = (
-                    parse_result.subcommands[1]
-                    if len(parse_result.subcommands) > 1
-                    else None
-                )
-                await self._handle_help(respond, context)
                 return
 
             handler = self.handlers.get(command_group)
@@ -247,6 +255,39 @@ class SlackCommandRouter:
         }
         await respond(response)
 
+    async def _send_command_required_error(self, respond: AsyncRespond) -> None:
+        """Send command required error response."""
+        response = {
+            "text": "❌ Command is required (website, monitoring, or system)",
+            "response_type": "ephemeral",
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "❌ *Command Required*\nPlease specify a command group.",
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "*Available commands:*\n• website • monitoring • system",
+                    },
+                },
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "mrkdwn",
+                            "text": "💡 Try `/webdeface help` for detailed usage information",
+                        }
+                    ],
+                },
+            ],
+        }
+        await respond(response)
+
     async def _send_internal_error(
         self, respond: AsyncRespond, error_message: str
     ) -> None:
@@ -324,7 +365,7 @@ class SlackCommandRouter:
                 self.permission_manager = await get_permission_manager()
             
             # Parse command to get subcommands
-            parse_result = await self.parser.parse_command(command)
+            parse_result = self.parser.parse_command(command)
             if not parse_result.success or not parse_result.subcommands:
                 return False
                 

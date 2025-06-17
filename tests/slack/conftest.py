@@ -21,6 +21,24 @@ from src.webdeface.notification.slack.permissions import (
 from src.webdeface.notification.slack.utils.formatters import SlackResponseFormatter
 from src.webdeface.notification.slack.utils.parsers import SlackCommandParser
 from src.webdeface.notification.slack.utils.validators import CommandValidator
+from tests.mock_settings import create_mock_settings
+
+
+# Apply comprehensive mocking to prevent external service calls
+@pytest.fixture(scope="session", autouse=True)
+def prevent_external_service_calls():
+    """Prevent all external service calls during Slack tests."""
+    mock_settings = create_mock_settings()
+    
+    with patch("src.webdeface.config.settings.get_settings", return_value=mock_settings), \
+         patch("src.webdeface.config.get_settings", return_value=mock_settings), \
+         patch("src.webdeface.api.auth.get_settings", return_value=mock_settings), \
+         patch("src.webdeface.classifier.claude.AsyncAnthropic"), \
+         patch("src.webdeface.classifier.vectorizer.SentenceTransformer"), \
+         patch("src.webdeface.scraper.browser.async_playwright"), \
+         patch("slack_bolt.async_app.AsyncApp"), \
+         patch("aiohttp.ClientSession"):
+        yield
 
 
 @pytest.fixture
@@ -129,6 +147,8 @@ def mock_permission_manager(slack_user_viewer, slack_user_operator, slack_user_a
                 Permission.VIEW_SYSTEM,
                 Permission.VIEW_METRICS,
                 Permission.VIEW_LOGS,
+                Permission.VIEW_MONITORING,
+                Permission.TRIGGER_CHECKS,
             }
             return permission in viewer_perms
         return False
@@ -136,7 +156,15 @@ def mock_permission_manager(slack_user_viewer, slack_user_operator, slack_user_a
     async def mock_get_user(user_id: str) -> Optional[SlackUser]:
         return users.get(user_id)
 
+    async def mock_check_permissions(user_id: str, team_id: str, permissions: list[Permission]) -> bool:
+        """Check multiple permissions for a user."""
+        for permission in permissions:
+            if not await mock_check_permission(user_id, permission):
+                return False
+        return True
+
     manager.check_permission = mock_check_permission
+    manager.check_permissions = mock_check_permissions
     manager.get_user = mock_get_user
 
     return manager
@@ -144,8 +172,8 @@ def mock_permission_manager(slack_user_viewer, slack_user_operator, slack_user_a
 
 @pytest.fixture
 def mock_storage():
-    """Create a mock storage manager."""
-    storage = MagicMock()
+    """Create a mock storage manager with async context manager support."""
+    storage = AsyncMock()
 
     # Mock website data
     mock_website = MagicMock()
@@ -168,14 +196,25 @@ def mock_storage():
     storage.get_website_alerts.return_value = []
     storage.get_open_alerts.return_value = []
 
+    # Implement async context manager protocol
+    async def mock_aenter():
+        return storage
+    
+    async def mock_aexit(exc_type, exc_val, exc_tb):
+        return None
+    
+    storage.__aenter__ = mock_aenter
+    storage.__aexit__ = mock_aexit
+
     return storage
 
 
 @pytest.fixture
 def mock_orchestrator():
-    """Create a mock scheduling orchestrator."""
-    orchestrator = MagicMock()
+    """Create a mock scheduling orchestrator with async support."""
+    orchestrator = AsyncMock()
 
+    # Mock all the orchestrator methods
     orchestrator.schedule_website_monitoring.return_value = "exec123"
     orchestrator.unschedule_website_monitoring.return_value = True
     orchestrator.pause_website_monitoring.return_value = True
@@ -187,6 +226,26 @@ def mock_orchestrator():
         "pending_jobs": 2,
         "uptime_seconds": 3600,
     }
+    
+    # Mock orchestrator state
+    orchestrator.is_running = True
+    orchestrator.is_initialized = True
+    
+    # Mock startup/shutdown methods
+    orchestrator.setup.return_value = None
+    orchestrator.cleanup.return_value = None
+    orchestrator.start.return_value = None
+    orchestrator.stop.return_value = None
+
+    # Implement async context manager protocol
+    async def mock_aenter():
+        return orchestrator
+    
+    async def mock_aexit(exc_type, exc_val, exc_tb):
+        return None
+    
+    orchestrator.__aenter__ = mock_aenter
+    orchestrator.__aexit__ = mock_aexit
 
     return orchestrator
 
@@ -281,10 +340,25 @@ def mock_slack_response():
 
 @pytest.fixture
 def patch_get_storage_manager(mock_storage):
-    """Patch the get_storage_manager function."""
+    """Patch the get_storage_manager function across all modules."""
+    async def async_get_storage_manager():
+        return mock_storage
+    
     with patch(
         "src.webdeface.storage.get_storage_manager",
-        return_value=mock_storage,
+        side_effect=async_get_storage_manager,
+    ), patch(
+        "src.webdeface.storage.interface.get_storage_manager",
+        side_effect=async_get_storage_manager,
+    ), patch(
+        "src.webdeface.notification.slack.handlers.website.get_storage_manager",
+        side_effect=async_get_storage_manager,
+    ), patch(
+        "src.webdeface.notification.slack.handlers.monitoring.get_storage_manager",
+        side_effect=async_get_storage_manager,
+    ), patch(
+        "src.webdeface.notification.slack.handlers.system.get_storage_manager",
+        side_effect=async_get_storage_manager,
     ):
         yield mock_storage
 
@@ -292,9 +366,18 @@ def patch_get_storage_manager(mock_storage):
 @pytest.fixture
 def patch_get_scheduling_orchestrator(mock_orchestrator):
     """Patch the get_scheduling_orchestrator function."""
+    async def async_get_scheduling_orchestrator():
+        return mock_orchestrator
+    
     with patch(
         "src.webdeface.scheduler.orchestrator.get_scheduling_orchestrator",
-        return_value=mock_orchestrator,
+        side_effect=async_get_scheduling_orchestrator,
+    ), patch(
+        "src.webdeface.notification.slack.handlers.system.get_scheduling_orchestrator",
+        side_effect=async_get_scheduling_orchestrator,
+    ), patch(
+        "src.webdeface.notification.slack.handlers.website.get_scheduling_orchestrator",
+        side_effect=async_get_scheduling_orchestrator,
     ):
         yield mock_orchestrator
 

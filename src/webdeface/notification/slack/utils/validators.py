@@ -76,6 +76,12 @@ class SlackCommandValidator:
     ) -> tuple[bool, Optional[str]]:
         """Validate website commands."""
         if len(subcommands) < 2:
+            # Check if we have an unknown command in args
+            if 0 in args:
+                unknown_cmd = str(args[0])
+                valid_commands = ["add", "remove", "list", "status"]
+                if unknown_cmd not in valid_commands:
+                    return False, "Unknown website command"
             return False, "Website command is required (add, remove, list, status)"
 
         website_cmd = subcommands[1]
@@ -172,6 +178,12 @@ class SlackCommandValidator:
     ) -> tuple[bool, Optional[str]]:
         """Validate monitoring commands."""
         if len(subcommands) < 2:
+            # Check if we have an unknown command in args
+            if 0 in args:
+                unknown_cmd = str(args[0])
+                valid_commands = ["start", "stop", "pause", "resume", "check"]
+                if unknown_cmd not in valid_commands:
+                    return False, "Unknown monitoring command"
             return (
                 False,
                 "Monitoring command is required (start, stop, pause, resume, check)",
@@ -208,6 +220,12 @@ class SlackCommandValidator:
     ) -> tuple[bool, Optional[str]]:
         """Validate system commands."""
         if len(subcommands) < 2:
+            # Check if we have an unknown command in args
+            if 0 in args:
+                unknown_cmd = str(args[0])
+                valid_commands = ["status", "health", "metrics", "logs"]
+                if unknown_cmd not in valid_commands:
+                    return False, "Unknown system command"
             return False, "System command is required (status, health, metrics, logs)"
 
         system_cmd = subcommands[1]

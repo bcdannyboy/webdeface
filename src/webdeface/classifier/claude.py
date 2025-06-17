@@ -418,6 +418,26 @@ class ClaudeClient:
 
         return processed_results
 
+    async def classify_advanced(
+        self,
+        changed_content: list[str],
+        static_context: list[str],
+        site_url: str,
+        site_context: Optional[dict[str, Any]] = None,
+        previous_classification: Optional[ClassificationResult] = None,
+    ) -> ClassificationResult:
+        """Advanced classification with enhanced analysis."""
+        # For now, this is an alias to classify_content with enhanced prompting
+        # In future, this could include multi-prompt analysis or ensemble methods
+        return await self.classify_content(
+            changed_content=changed_content,
+            static_context=static_context,
+            site_url=site_url,
+            site_context=site_context,
+            prompt_type="general_analysis",
+            previous_classification=previous_classification,
+        )
+
     async def validate_api_connection(self) -> bool:
         """Validate connection to Claude API."""
         try:

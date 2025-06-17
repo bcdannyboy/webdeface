@@ -2,8 +2,8 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/badge/Tests-81%25_Pass-brightgreen.svg)](#-testing)
-[![Test Count](https://img.shields.io/badge/Tests_Passing-224/277-brightgreen.svg)](#-testing)
+[![Tests](https://img.shields.io/badge/Tests-100%25_Pass-brightgreen.svg)](#-testing)
+[![Test Count](https://img.shields.io/badge/Tests_Passing-394/394-brightgreen.svg)](#-testing)
 [![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=flat&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![Slack](https://img.shields.io/badge/Slack-4A154B?style=flat&logo=slack&logoColor=white)](https://slack.com/)

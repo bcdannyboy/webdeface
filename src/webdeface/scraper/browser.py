@@ -153,25 +153,36 @@ class StealthBrowser:
     ):
         """Create a new page with stealth configuration."""
         if context:
+            # Use existing context
             page = await context.new_page()
+            
+            # Set default timeouts
+            page.set_default_timeout(self.settings.default_timeout)
+            page.set_default_navigation_timeout(self.settings.default_timeout)
+
+            # Random delay to avoid detection
+            await asyncio.sleep(random.uniform(0.5, 2.0))
+
+            try:
+                yield page
+            finally:
+                await page.close()
         else:
+            # Create our own context
             async with self.create_context() as ctx:
                 page = await ctx.new_page()
+                
+                # Set default timeouts
+                page.set_default_timeout(self.settings.default_timeout)
+                page.set_default_navigation_timeout(self.settings.default_timeout)
 
-        # Set default timeouts
-        page.set_default_timeout(self.settings.default_timeout)
-        page.set_default_navigation_timeout(self.settings.default_timeout)
+                # Random delay to avoid detection
+                await asyncio.sleep(random.uniform(0.5, 2.0))
 
-        # Random delay to avoid detection
-        await asyncio.sleep(random.uniform(0.5, 2.0))
-
-        try:
-            yield page
-        finally:
-            if not context:  # Only close if we created the context
-                pass
-            else:
-                await page.close()
+                try:
+                    yield page
+                finally:
+                    await page.close()
 
 
 class BrowserPool:

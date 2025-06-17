@@ -42,9 +42,18 @@ class WebsiteHandler(BaseSlackHandler, AsyncCommandMixin):
     ) -> CommandResult:
         """Execute website command logic."""
         if len(subcommands) < 2:
+            # Check if we have an unknown command in args
+            if 0 in args:
+                unknown_cmd = str(args[0])
+                if unknown_cmd not in ["add", "remove", "list", "status"]:
+                    return CommandResult(
+                        success=False,
+                        message="Unknown website command",
+                        exit_code=1,
+                    )
             return CommandResult(
                 success=False,
-                message="Website subcommand required (add, remove, list, status)",
+                message="Website command is required (add, remove, list, status)",
                 exit_code=1,
             )
 
@@ -63,7 +72,7 @@ class WebsiteHandler(BaseSlackHandler, AsyncCommandMixin):
             else:
                 return CommandResult(
                     success=False,
-                    message=f"Unknown website command: {command}",
+                    message="Unknown website command",
                     exit_code=1,
                 )
         except Exception as e:
@@ -71,7 +80,7 @@ class WebsiteHandler(BaseSlackHandler, AsyncCommandMixin):
                 "Website command execution failed", command=command, error=str(e)
             )
             return CommandResult(
-                success=False, message=f"Command failed: {str(e)}", exit_code=1
+                success=False, message="Command failed", exit_code=1
             )
 
     async def _handle_add(
@@ -244,7 +253,7 @@ class WebsiteHandler(BaseSlackHandler, AsyncCommandMixin):
 
         except Exception as e:
             return CommandResult(
-                success=False, message=f"Failed to list websites: {str(e)}", exit_code=1
+                success=False, message="Command failed", exit_code=1
             )
 
     async def _handle_status(

@@ -43,6 +43,10 @@ def global_service_patches():
     ) as mock_playwright, patch(
         "slack_bolt.async_app.AsyncApp"
     ) as mock_slack_app, patch(
+        "src.webdeface.config.settings.get_settings"
+    ) as mock_get_settings, patch(
+        "src.webdeface.config.get_settings"
+    ) as mock_get_settings_alt, patch(
         "builtins.open", side_effect=FileNotFoundError("Test mode - no config file")
     ):
         # Mock config loader to return empty config
@@ -50,9 +54,21 @@ def global_service_patches():
 
         # Mock database engine with proper async mock
         mock_async_engine = AsyncMock()
-        mock_async_engine.sync_engine = AsyncMock()
+        mock_async_engine.sync_engine = Mock()  # sync_engine should be regular Mock
         mock_async_engine.dispose = AsyncMock()
-        mock_async_engine.begin = AsyncMock()
+        
+        # Mock async context manager for engine.begin()
+        mock_connection = AsyncMock()
+        mock_connection.execute = AsyncMock()
+        mock_connection.commit = AsyncMock()
+        mock_connection.rollback = AsyncMock()
+        
+        # Create a proper async context manager mock
+        mock_begin_context = AsyncMock()
+        mock_begin_context.__aenter__ = AsyncMock(return_value=mock_connection)
+        mock_begin_context.__aexit__ = AsyncMock(return_value=None)
+        mock_async_engine.begin.return_value = mock_begin_context
+        
         mock_engine.return_value = mock_async_engine
 
         # Mock database manager
@@ -63,8 +79,37 @@ def global_service_patches():
         mock_db_manager.setup = AsyncMock()
         mock_db_manager.cleanup = AsyncMock()
         mock_db_manager.health_check = AsyncMock(return_value=True)
-        mock_db_manager.get_session = AsyncMock()
-        mock_db_manager.get_transaction = AsyncMock()
+        
+        # Mock async context manager for sessions - FIX for async context manager protocol
+        mock_session = AsyncMock()
+        # Mock session operations as regular methods (not AsyncMock for sync operations)
+        mock_session.add = Mock()
+        mock_session.flush = AsyncMock()
+        mock_session.refresh = AsyncMock()
+        mock_session.commit = AsyncMock()
+        mock_session.rollback = AsyncMock()
+        mock_session.close = AsyncMock()
+        mock_session.execute = AsyncMock()
+        mock_session.begin = AsyncMock()
+        
+        # Mock query results
+        mock_result = Mock()  # Use regular Mock for result objects
+        mock_result.scalar.return_value = 1
+        mock_result.scalar_one_or_none.return_value = None
+        mock_result.scalars.return_value.all.return_value = []
+        mock_session.execute.return_value = mock_result
+        
+        # Set up proper async context manager protocol
+        mock_session_context = AsyncMock()
+        mock_session_context.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session_context.__aexit__ = AsyncMock(return_value=None)
+        
+        mock_transaction_context = AsyncMock()
+        mock_transaction_context.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_transaction_context.__aexit__ = AsyncMock(return_value=None)
+        
+        mock_db_manager.get_session.return_value = mock_session_context
+        mock_db_manager.get_transaction.return_value = mock_transaction_context
         mock_get_db_manager.return_value = mock_db_manager
 
         # Mock storage manager
@@ -96,6 +141,12 @@ def global_service_patches():
         mock_slack_instance = AsyncMock()
         mock_slack_app.return_value = mock_slack_instance
 
+        # Mock settings for all import paths
+        from tests.mock_settings import create_mock_settings
+        mock_settings = create_mock_settings()
+        mock_get_settings.return_value = mock_settings
+        mock_get_settings_alt.return_value = mock_settings
+
         yield
 
 
@@ -107,7 +158,7 @@ def event_loop():
     loop.close()
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture(scope="function")
 async def test_settings():
     """Create test settings for use across test session."""
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -272,11 +323,11 @@ def mock_qdrant_manager():
 
 @pytest.fixture
 def mock_db_session():
-    """Create a mock database session for testing."""
+    """Create a mock database session for testing with proper async context manager support."""
     mock_session = AsyncMock()
 
     # Mock session operations
-    mock_session.add = Mock()
+    mock_session.add = AsyncMock()
     mock_session.flush = AsyncMock()
     mock_session.refresh = AsyncMock()
     mock_session.commit = AsyncMock()
@@ -286,11 +337,15 @@ def mock_db_session():
     mock_session.begin = AsyncMock()
 
     # Mock query results
-    mock_result = Mock()
+    mock_result = AsyncMock()
     mock_result.scalar.return_value = 1
     mock_result.scalar_one_or_none.return_value = None
     mock_result.scalars.return_value.all.return_value = []
     mock_session.execute.return_value = mock_result
+
+    # Ensure proper async context manager support
+    mock_session.__aenter__.return_value = mock_session
+    mock_session.__aexit__.return_value = None
 
     return mock_session
 
@@ -508,13 +563,38 @@ async def setup_test_environment(
         }
 
 
-# Async cleanup helper for orchestrators
+# Async cleanup helper for orchestrators and global state
 @pytest_asyncio.fixture(scope="function", autouse=True)
 async def async_cleanup():
-    """Ensure proper async cleanup for each test."""
+    """Ensure proper async cleanup for each test and reset global state."""
     yield
-    # Cleanup happens automatically via pytest-asyncio
-    # No manual event loop manipulation needed
+    
+    # Clean up orchestrators FIRST while event loop is still running
+    try:
+        from src.webdeface.classifier.orchestrator import cleanup_classification_orchestrator
+        from src.webdeface.scraper.orchestrator import cleanup_scraping_orchestrator
+        
+        # Ensure cleanup happens while event loop is still available
+        await cleanup_classification_orchestrator()
+        await cleanup_scraping_orchestrator()
+    except (ImportError, RuntimeError) as e:
+        # Ignore if modules not available or event loop issues
+        pass
+    
+    # Clean up global Claude client to prevent state leakage between tests
+    try:
+        from src.webdeface.classifier.claude import cleanup_claude_client
+        cleanup_claude_client()
+    except ImportError:
+        pass
+    
+    # Clear settings cache to ensure fresh state
+    try:
+        from src.webdeface.config.settings import get_settings
+        if hasattr(get_settings, 'cache_clear'):
+            get_settings.cache_clear()
+    except ImportError:
+        pass
 
 
 # Mark all tests as asyncio by default for this test suite

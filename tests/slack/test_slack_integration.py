@@ -78,21 +78,24 @@ class TestSlackIntegration:
                 nonlocal response_data
                 response_data = data
 
-            mock_route.side_effect = lambda text, user_id, respond, channel_id: capture_response(
-                {
-                    "text": "✅ Website added successfully: TestSite (https://example.com)",
-                    "response_type": "in_channel",
-                    "blocks": [
-                        {
-                            "type": "section",
-                            "text": {
-                                "type": "mrkdwn",
-                                "text": "✅ *Website Added*\n*TestSite* (https://example.com)\nInterval: 900s",
-                            },
-                        }
-                    ],
-                }
-            )
+            async def mock_route_side_effect(text, user_id, respond, channel_id):
+                await respond(
+                    {
+                        "text": "✅ Website added successfully: TestSite (https://example.com)",
+                        "response_type": "in_channel",
+                        "blocks": [
+                            {
+                                "type": "section",
+                                "text": {
+                                    "type": "mrkdwn",
+                                    "text": "✅ *Website Added*\n*TestSite* (https://example.com)\nInterval: 900s",
+                                },
+                            }
+                        ],
+                    }
+                )
+            
+            mock_route.side_effect = mock_route_side_effect
 
             # Register the command handler
             @test_app.command("/webdeface")
@@ -149,14 +152,15 @@ class TestSlackIntegration:
                 nonlocal response_data
                 response_data = data
 
-            mock_route.side_effect = (
-                lambda text, user_id, respond, channel_id: capture_response(
+            async def mock_route_side_effect(text, user_id, respond, channel_id):
+                await respond(
                     {
                         "text": "✅ Started monitoring for: Test Website",
                         "response_type": "in_channel",
                     }
                 )
-            )
+            
+            mock_route.side_effect = mock_route_side_effect
 
             @test_app.command("/webdeface")
             async def handle_webdeface_command(ack, respond, command):
@@ -209,21 +213,24 @@ class TestSlackIntegration:
                 nonlocal response_data
                 response_data = data
 
-            mock_route.side_effect = lambda text, user_id, respond, channel_id: capture_response(
-                {
-                    "text": "✅ System status retrieved successfully",
-                    "response_type": "ephemeral",
-                    "blocks": [
-                        {
-                            "type": "section",
-                            "text": {
-                                "type": "mrkdwn",
-                                "text": "*System Status*\n• Websites: 2 total (1 active)\n• Alerts: 0 open\n• Scheduler: running",
-                            },
-                        }
-                    ],
-                }
-            )
+            async def mock_route_side_effect(text, user_id, respond, channel_id):
+                await respond(
+                    {
+                        "text": "✅ System status retrieved successfully",
+                        "response_type": "ephemeral",
+                        "blocks": [
+                            {
+                                "type": "section",
+                                "text": {
+                                    "type": "mrkdwn",
+                                    "text": "*System Status*\n• Websites: 2 total (1 active)\n• Alerts: 0 open\n• Scheduler: running",
+                                },
+                            }
+                        ],
+                    }
+                )
+            
+            mock_route.side_effect = mock_route_side_effect
 
             @test_app.command("/webdeface")
             async def handle_webdeface_command(ack, respond, command):
@@ -264,21 +271,24 @@ class TestSlackIntegration:
                 nonlocal response_data
                 response_data = data
 
-            mock_route.side_effect = lambda text, user_id, respond, channel_id: capture_response(
-                {
-                    "text": "🔒 Insufficient permissions. Required: add_sites",
-                    "response_type": "ephemeral",
-                    "blocks": [
-                        {
-                            "type": "section",
-                            "text": {
-                                "type": "mrkdwn",
-                                "text": "🔒 *Access Denied*\nInsufficient permissions. Required: add_sites",
-                            },
-                        }
-                    ],
-                }
-            )
+            async def mock_route_side_effect(text, user_id, respond, channel_id):
+                await respond(
+                    {
+                        "text": "🔒 Insufficient permissions. Required: add_sites",
+                        "response_type": "ephemeral",
+                        "blocks": [
+                            {
+                                "type": "section",
+                                "text": {
+                                    "type": "mrkdwn",
+                                    "text": "🔒 *Access Denied*\nInsufficient permissions. Required: add_sites",
+                                },
+                            }
+                        ],
+                    }
+                )
+            
+            mock_route.side_effect = mock_route_side_effect
 
             @test_app.command("/webdeface")
             async def handle_webdeface_command(ack, respond, command):
@@ -314,28 +324,31 @@ class TestSlackIntegration:
                 nonlocal response_data
                 response_data = data
 
-            mock_route.side_effect = lambda text, user_id, respond, channel_id: capture_response(
-                {
-                    "text": "Web Defacement Monitor Help",
-                    "response_type": "ephemeral",
-                    "blocks": [
-                        {
-                            "type": "header",
-                            "text": {
-                                "type": "plain_text",
-                                "text": "🚨 Web Defacement Monitor",
+            async def mock_route_side_effect(text, user_id, respond, channel_id):
+                await respond(
+                    {
+                        "text": "Web Defacement Monitor Help",
+                        "response_type": "ephemeral",
+                        "blocks": [
+                            {
+                                "type": "header",
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "🚨 Web Defacement Monitor",
+                                },
                             },
-                        },
-                        {
-                            "type": "section",
-                            "text": {
-                                "type": "mrkdwn",
-                                "text": "*Available Commands:*\n• `/webdeface website` - Manage websites\n• `/webdeface monitoring` - Control monitoring\n• `/webdeface system` - System information",
+                            {
+                                "type": "section",
+                                "text": {
+                                    "type": "mrkdwn",
+                                    "text": "*Available Commands:*\n• `/webdeface website` - Manage websites\n• `/webdeface monitoring` - Control monitoring\n• `/webdeface system` - System information",
+                                },
                             },
-                        },
-                    ],
-                }
-            )
+                        ],
+                    }
+                )
+            
+            mock_route.side_effect = mock_route_side_effect
 
             @test_app.command("/webdeface")
             async def handle_webdeface_command(ack, respond, command):
@@ -375,28 +388,31 @@ class TestSlackIntegration:
                 nonlocal response_data
                 response_data = data
 
-            mock_route.side_effect = lambda text, user_id, respond, channel_id: capture_response(
-                {
-                    "text": "❌ URL is required for website add command",
-                    "response_type": "ephemeral",
-                    "blocks": [
-                        {
-                            "type": "section",
-                            "text": {
-                                "type": "mrkdwn",
-                                "text": "❌ *Validation Error*\nURL is required for website add command",
+            async def mock_route_side_effect(text, user_id, respond, channel_id):
+                await respond(
+                    {
+                        "text": "❌ URL is required for website add command",
+                        "response_type": "ephemeral",
+                        "blocks": [
+                            {
+                                "type": "section",
+                                "text": {
+                                    "type": "mrkdwn",
+                                    "text": "❌ *Validation Error*\nURL is required for website add command",
+                                },
                             },
-                        },
-                        {
-                            "type": "section",
-                            "text": {
-                                "type": "mrkdwn",
-                                "text": "💡 *Suggestions:*\n• Try: /webdeface website add <url>",
+                            {
+                                "type": "section",
+                                "text": {
+                                    "type": "mrkdwn",
+                                    "text": "💡 *Suggestions:*\n• Try: /webdeface website add <url>",
+                                },
                             },
-                        },
-                    ],
-                }
-            )
+                        ],
+                    }
+                )
+            
+            mock_route.side_effect = mock_route_side_effect
 
             @test_app.command("/webdeface")
             async def handle_webdeface_command(ack, respond, command):
@@ -451,21 +467,24 @@ class TestSlackIntegration:
                 nonlocal response_data
                 response_data = data
 
-            mock_route.side_effect = lambda text, user_id, respond, channel_id: capture_response(
-                {
-                    "text": "✅ Website added successfully: Complex Site Name (https://example.com)",
-                    "response_type": "in_channel",
-                    "blocks": [
-                        {
-                            "type": "section",
-                            "text": {
-                                "type": "mrkdwn",
-                                "text": "✅ *Website Added*\n*Complex Site Name* (https://example.com)\nInterval: 300s\nMax Depth: 5",
-                            },
-                        }
-                    ],
-                }
-            )
+            async def mock_route_side_effect(text, user_id, respond, channel_id):
+                await respond(
+                    {
+                        "text": "✅ Website added successfully: Complex Site Name (https://example.com)",
+                        "response_type": "in_channel",
+                        "blocks": [
+                            {
+                                "type": "section",
+                                "text": {
+                                    "type": "mrkdwn",
+                                    "text": "✅ *Website Added*\n*Complex Site Name* (https://example.com)\nInterval: 300s\nMax Depth: 5",
+                                },
+                            }
+                        ],
+                    }
+                )
+            
+            mock_route.side_effect = mock_route_side_effect
 
             @test_app.command("/webdeface")
             async def handle_webdeface_command(ack, respond, command):
@@ -511,21 +530,24 @@ class TestSlackIntegration:
                 nonlocal response_data
                 response_data = data
 
-            mock_route.side_effect = lambda text, user_id, respond, channel_id: capture_response(
-                {
-                    "text": "💥 Internal error occurred",
-                    "response_type": "ephemeral",
-                    "blocks": [
-                        {
-                            "type": "section",
-                            "text": {
-                                "type": "mrkdwn",
-                                "text": "💥 *Internal Error*\nSomething went wrong processing your command.",
-                            },
-                        }
-                    ],
-                }
-            )
+            async def mock_route_side_effect(text, user_id, respond, channel_id):
+                await respond(
+                    {
+                        "text": "💥 Internal error occurred",
+                        "response_type": "ephemeral",
+                        "blocks": [
+                            {
+                                "type": "section",
+                                "text": {
+                                    "type": "mrkdwn",
+                                    "text": "💥 *Internal Error*\nSomething went wrong processing your command.",
+                                },
+                            }
+                        ],
+                    }
+                )
+            
+            mock_route.side_effect = mock_route_side_effect
 
             @test_app.command("/webdeface")
             async def handle_webdeface_command(ack, respond, command):
@@ -606,12 +628,15 @@ class TestSlackIntegration:
                 response_data = data
 
             # Mock response that would be generated from CLI result
-            mock_route.side_effect = lambda text, user_id, respond, channel_id: capture_response(
-                {
-                    "text": "✅ Website added successfully: TestWebsite (https://example.com)",
-                    "response_type": "in_channel",
-                }
-            )
+            async def mock_route_side_effect(text, user_id, respond, channel_id):
+                await respond(
+                    {
+                        "text": "✅ Website added successfully: TestWebsite (https://example.com)",
+                        "response_type": "in_channel",
+                    }
+                )
+            
+            mock_route.side_effect = mock_route_side_effect
 
             await mock_route(
                 mock_slack_event["text"],
@@ -670,14 +695,15 @@ class TestSlackIntegration:
                     nonlocal response_data
                     response_data = data
 
-                mock_route.side_effect = (
-                    lambda text, user_id, respond, channel_id: capture_response(
+                async def mock_route_side_effect(text, user_id, respond, channel_id):
+                    await respond(
                         {
                             "text": f"✅ {expected_response}",
                             "response_type": "in_channel",
                         }
                     )
-                )
+                
+                mock_route.side_effect = mock_route_side_effect
 
                 mock_slack_event["text"] = command_text
                 mock_slack_event["user_id"] = "U345678"  # Admin user
@@ -760,8 +786,8 @@ class TestSlackIntegration:
                 nonlocal response_data
                 response_data = data
 
-            mock_route.side_effect = (
-                lambda text, user_id, respond, channel_id: capture_response(
+            async def mock_route_side_effect(text, user_id, respond, channel_id):
+                await respond(
                     {
                         "text": "📊 Website List",
                         "response_type": "ephemeral",
@@ -783,7 +809,8 @@ class TestSlackIntegration:
                         ],
                     }
                 )
-            )
+            
+            mock_route.side_effect = mock_route_side_effect
 
             await mock_route(
                 mock_slack_event["text"],
