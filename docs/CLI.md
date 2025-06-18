@@ -3,7 +3,7 @@
 **Command:** `webdeface-monitor`
 **Version:** 1.0.0
 
-> **⚠️ DEPRECATION NOTICE:** The CLI interface is being deprecated in favor of Slack slash commands for improved team collaboration and real-time monitoring. While the CLI will continue to work, we recommend migrating to the new Slack interface. See the [Migration Guide](#migration-to-slack-commands) below and [Slack Commands Documentation](SLACK_COMMANDS.md) for complete details.
+> **⚠️ DEPRECATION NOTICE:** The CLI is deprecated and will be removed in a future version. Please migrate to the Slack slash commands for all operations. The Slack interface provides a better user experience, real-time collaboration, and more features. See the [Migration Guide](#migration-to-slack-commands) and [Slack Commands Documentation](SLACK_COMMANDS.md) for details.
 
 This document provides comprehensive documentation for the WebDeface Monitor command-line interface, including all commands, options, usage examples, and advanced scenarios.
 
@@ -29,7 +29,7 @@ pip install webdeface-monitor
 
 ### From Source
 ```bash
-git clone https://github.com/your-org/webdeface-monitor.git
+git clone https://github.com/bcdannyboy/webdeface.git
 cd webdeface-monitor
 pip install -e .
 ```
@@ -106,7 +106,7 @@ webdeface-monitor website add URL [OPTIONS]
 
 **Options:**
 - `--name TEXT` - Website name (defaults to domain)
-- `--interval TEXT` - Monitoring interval (cron expression, default: `*/15 * * * *`)
+- `--interval TEXT` - Monitoring interval (cron expression, default: `*/15 * * * *`). Note: Currently, the interval is fixed at 15 minutes.
 - `--max-depth INTEGER` - Maximum crawl depth (default: 2)
 
 **Examples:**
@@ -421,17 +421,17 @@ webdeface-monitor --verbose system status
 **Output:**
 ```
 System Status
-┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ Component                 ┃ Status                                                       ┃ Details                  ┃
-┡━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-│ Overall                   │ 🟢 Running                                                   │ Uptime: 86400.5s        │
-│ Scheduler Orchestrator    │ 🟢 Running                                                   │                          │
-│ Workflow Engine           │ 🟢 Running                                                   │                          │
-│ Storage                   │ 🟢 Running                                                   │                          │
-│ Jobs Scheduled            │ 25                                                           │                          │
-│ Workflows Executed        │ 1543                                                         │                          │
-│ Active Workflows          │ 3                                                            │                          │
-└───────────────────────────┴──────────────────────────────────────────────────────────────┴──────────────────────────┘
+┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Component            ┃ Status           ┃ Details              ┃
+┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━┩
+│ Overall              │ 🟢 Running       │ Uptime: 86400.5s     │
+│ Scheduler Orchestrator │ 🟢 Running       │                      │
+│ Workflow Engine      │ 🟢 Running       │                      │
+│ Storage              │ 🟢 Running       │                      │
+│ Jobs Scheduled       │ 25               │                      │
+│ Workflows Executed   │ 1543             │                      │
+│ Active Workflows     │ 3                │                      │
+└──────────────────────┴──────────────────┴──────────────────────┘
 ```
 
 ### System Health
@@ -866,7 +866,7 @@ webdeface-monitor --version
 ## 📞 Support
 
 - **Documentation:** [CLI Reference](docs/CLI.md)
-- **Issues:** [GitHub Issues](https://github.com/your-org/webdeface-monitor/issues)
+- **Issues:** [GitHub Issues](https://github.com/bcdannyboy/webdeface/issues)
 - **Email:** cli-support@your-org.com
 
 **Quick Help:**
@@ -930,7 +930,7 @@ For complete migration guidance, see [Slack Commands Documentation](SLACK_COMMAN
 
 - **New Interface:** [Slack Commands Documentation](SLACK_COMMANDS.md)
 - **CLI Documentation:** [CLI Reference](docs/CLI.md) (legacy)
-- **Issues:** [GitHub Issues](https://github.com/your-org/webdeface-monitor/issues)
+- **Issues:** [GitHub Issues](https://github.com/bcdannyboy/webdeface/issues)
 - **Email:** support@your-org.com
 
 **Quick Help:**

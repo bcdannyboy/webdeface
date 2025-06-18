@@ -3,7 +3,6 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Tests](https://img.shields.io/badge/Tests-100%25_Pass-brightgreen.svg)](#-testing)
-[![Test Count](https://img.shields.io/badge/Tests_Passing-394/394-brightgreen.svg)](#-testing)
 [![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=flat&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![Slack](https://img.shields.io/badge/Slack-4A154B?style=flat&logo=slack&logoColor=white)](https://slack.com/)
@@ -13,37 +12,28 @@
 
 WebDeface Monitor is a web defacement detection system that combines advanced AI classification, intelligent orchestration, and Slack-based team collaboration to provide comprehensive website security monitoring. Built with Docker-first deployment and designed for high-availability production environments.
 
+## 📋 Table of Contents
+
+- [🚀 Overview & Features](#-overview--features)
+- [⚡ Quick Start](#-quick-start)
+- [🛠️ Prerequisites & Setup](#-prerequisites--setup)
+- [🚀 Deployment](#-deployment)
+- [⚙️ Configuration](#-configuration)
+- [🎯 Usage](#-usage)
+- [🏗️ Architecture](#-architecture)
+- [🔍 Troubleshooting](#-troubleshooting)
+- [📚 Documentation Links](#-documentation-links)
+
+
 ## 🚀 Overview & Features
 
 ### Core Capabilities
-- **🤖 AI-Powered Classification** - Claude AI analyzes content changes with confidence scoring and sophisticated threat detection
-- **🕷️ JavaScript-Aware Scraping** - Playwright engine renders dynamic content for accurate monitoring of modern web applications
-- **💬 Slack-First Interface** - Native team collaboration with slash commands, interactive components, and role-based permissions
-- **🎯 Vector Similarity Detection** - Optional Qdrant-powered semantic analysis for advanced pattern recognition and anomaly detection
-- **⚙️ Intelligent Orchestration** - Three-tier orchestration system: Scheduling, Scraping, and Classification with unified data management
-- **🐳 Production Infrastructure** - Docker containerization with multi-stage builds, health monitoring, and automated lifecycle management
-
-### Enterprise Features
-- **🏗️ Infrastructure Management** - Comprehensive [`run_infrastructure.sh`](run_infrastructure.sh) script for complete operational control
-- **🔐 Security & Authentication** - API key-based authentication with role-based access control and secure credential management
-- **📊 Monitoring & Observability** - Health checks, performance metrics, structured logging, and comprehensive system insights
-- **🔄 High Availability** - Multi-container deployment, graceful shutdowns, automatic restarts, and load balancing support
-- **💾 Data Management** - Automated backups, restore capabilities, persistent storage with volume management and data retention policies
-- **⚙️ Flexible Configuration** - Environment-based configuration with YAML overrides, runtime validation, and hot-reload capabilities
-
-## 📋 Table of Contents
-
-- [Quick Start](#-quick-start)
-- [Prerequisites & Setup](#-prerequisites--setup)
-- [Deployment](#-deployment)
-- [Configuration](#-configuration)
-- [Usage](#-usage)
-- [Architecture](#-architecture)
-- [Testing](#-testing)
-- [Infrastructure Management](#-infrastructure-management)
-- [Development](#-development)
-- [Production Considerations](#-production-considerations)
-- [Documentation Links](#-documentation-links)
+- **🤖 AI-Powered Classification** - Claude AI analyzes content changes with confidence scoring and sophisticated threat detection.
+- **🕷️ JavaScript-Aware Scraping** - Playwright engine renders dynamic content for accurate monitoring of modern web applications.
+- **💬 Slack-First Interface** - Native team collaboration with slash commands, interactive components, and role-based permissions.
+- **🎯 Vector Similarity Detection** - Optional Qdrant-powered semantic analysis for advanced pattern recognition and anomaly detection.
+- **⚙️ Intelligent Orchestration** - Three-tier orchestration system: Scheduling, Scraping, and Classification with unified data management.
+- **🐳 Production Infrastructure** - Docker containerization with multi-stage builds, health monitoring, and automated lifecycle management.
 
 ## ⚡ Quick Start
 
@@ -89,12 +79,7 @@ chmod +x run_infrastructure.sh
 - **Docker**: Version 20.10+
 - **Docker Compose**: Version 2.0+
 
-### Required API Keys
-- **Anthropic Claude API**: For AI-powered content classification and threat analysis
-- **Slack Bot Tokens**: For team integration, notifications, and primary interface
-
 ### Docker Installation
-
 **Linux (Ubuntu/Debian):**
 ```bash
 curl -fsSL https://get.docker.com -o get-docker.sh
@@ -109,9 +94,19 @@ brew install --cask docker
 # Or download from https://docker.com/products/docker-desktop
 ```
 
-### Slack Bot Setup
+### Required API Keys
+- **Anthropic Claude API**: For AI-powered content classification and threat analysis.
+- **Slack Bot Tokens**: For team integration, notifications, and primary interface.
 
-For a complete, step-by-step walkthrough—including OAuth scopes, Socket Mode tokens, slash commands, and environment variable recommendations—refer to the dedicated guide in **[`docs/SLACK_APP_SETUP.md`](docs/SLACK_APP_SETUP.md)**.
+### Slack Bot Setup
+A Slack App is required for the primary interface. Here is a summary of the setup process:
+1.  **Create a Slack App** in your workspace.
+2.  **Enable Socket Mode** and generate an app-level token (`xapp-...`).
+3.  **Add OAuth Scopes** for the bot (e.g., `chat:write`, `commands`, `users:read`).
+4.  **Create a Slash Command**: `/webdeface`.
+5.  **Install the App** to your workspace and get the Bot User OAuth Token (`xoxb-...`).
+
+For a complete, step-by-step walkthrough, refer to the dedicated guide in **[`docs/SLACK_INTEGRATION.md`](docs/SLACK_INTEGRATION.md)**.
 
 ## 🚀 Deployment
 
@@ -145,6 +140,7 @@ LOG_LEVEL=INFO
 ### Deployment Options
 
 **Option 1: Infrastructure Script (Recommended)**
+The `run_infrastructure.sh` script provides a simple interface for managing the application stack.
 ```bash
 # Standard deployment
 ./run_infrastructure.sh start
@@ -153,128 +149,83 @@ LOG_LEVEL=INFO
 ./run_infrastructure.sh start --qdrant
 
 # Development mode with hot-reload
-./run_infrastructure.sh dev --qdrant
+./run_infrastructure.sh dev
 ```
 
 **Option 2: Docker Compose**
+For more granular control, you can use `docker-compose` directly.
 ```bash
 # Basic deployment
 docker-compose up -d
 
 # With Qdrant vector database
 docker-compose --profile qdrant up -d
-
-# View logs
-docker-compose logs -f webdeface
-```
-
-**Option 3: Production Scaling**
-```bash
-# High availability deployment
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --scale webdeface=3
 ```
 
 ## ⚙️ Configuration
 
+Configuration is managed through environment variables and a `config.yaml` file. Environment variables always override settings in the YAML file.
+
 ### Environment Variables
-
-**Core Application:**
-```bash
-# Security & Authentication
-SECRET_KEY=your-secret-key-here           # Application secret
-DEBUG=false                               # Production mode
-LOG_LEVEL=INFO                           # Logging verbosity
-
-# Data Management
-KEEP_SCANS=20                            # Scan history retention
-DATABASE__URL=sqlite:///./data/webdeface.db
-```
-
-**External Service Integration:**
-```bash
-# Claude AI Configuration
-CLAUDE_API_KEY=sk-ant-xxxxx              # Required for AI classification
-CLAUDE_MODEL=claude-3-sonnet-20240229    # AI model selection
-CLAUDE_MAX_TOKENS=4000                   # Response length limit
-CLAUDE_TEMPERATURE=0.1                   # Response consistency
-
-# Slack Integration (Primary Interface)
-SLACK_BOT_TOKEN=xoxb-xxxxx               # Required
-SLACK_APP_TOKEN=xapp-xxxxx               # Required for socket mode
-SLACK_SIGNING_SECRET=xxxxx               # Required for verification
-
-# Qdrant Vector Database (Optional)
-QDRANT__URL=http://qdrant:6333           # Service URL
-QDRANT__COLLECTION_NAME=webdeface        # Collection name
-QDRANT__VECTOR_SIZE=384                  # Embedding dimensions
-```
+| Variable | Description | Default |
+|---|---|---|
+| `DEBUG` | Enable debug mode. | `False` |
+| `LOG_LEVEL` | The log level to use (`DEBUG`, `INFO`, `WARNING`, `ERROR`). | `INFO` |
+| `KEEP_SCANS` | The number of scans to keep for each website. | `20` |
+| `API_TOKENS` | A comma-separated list of API tokens for the REST API. | `dev-token-12345` |
+| `DATABASE_URL` | The URL of the database. | `sqlite:///./data/webdeface.db` |
+| `QDRANT_URL` | The URL of the Qdrant vector database. | `http://localhost:6333` |
+| `SLACK_BOT_TOKEN` | The Slack bot token (`xoxb-...`). | `""` |
+| `SLACK_APP_TOKEN` | The Slack app token (`xapp-...`). | `""` |
+| `SLACK_SIGNING_SECRET` | The Slack signing secret. | `""` |
+| `CLAUDE_API_KEY` | The Claude API key. | `""` |
 
 ### YAML Configuration
+The `config.yaml` file is used for static configuration.
 
-**Monitoring Configuration ([`config.yaml`](config.yaml)):**
+**Example `config.yaml`:**
 ```yaml
 global:
-  default_interval: "*/15 * * * *"        # Default monitoring frequency
-  keep_scans: 20                          # Scan history retention
-  max_concurrent_jobs: 4                  # Parallel monitoring limit
-  
-  # Alert routing configuration
+  default_interval: "*/15 * * * *"   # Every 15 minutes
+  keep_scans: 20
   alert:
     site_down:
-      channels: ["#ops-alerts"]
-      users: ["@oncall-engineer"]
+      channels: ["#noc"]
     defacement:
-      channels: ["#security-alerts", "#ops-alerts"]
+      channels: ["#sec-ops"]
       users: ["@security-team"]
-    suspicious:
-      channels: ["#security-review"]
 
-# Website monitoring definitions
 sites:
   - url: "https://example.com"
-    name: "Production Site"
-    interval: "*/5 * * * *"               # Every 5 minutes
-    max_depth: 2
-    priority: "critical"
+    name: "Example Site"
+    interval: "0,30 * * * *"  # Every 30 minutes
+    depth: 2
     enabled: true
 
-# Scraping behavior
 scraping:
-  default_timeout: 10000
+  default_timeout: 10000  # 10 seconds
   max_retries: 3
-  max_depth: 3
-  user_agents:
-    - "Mozilla/5.0 (compatible; WebDefaceMonitor/1.0)"
-
-# AI classification settings
-classification:
-  confidence_threshold: 0.7
-  max_tokens: 8000
-  context_chunks: 5
 ```
+For more details, see **[`docs/CONFIGURATION.md`](docs/CONFIGURATION.md)**.
 
 ## 🎯 Usage
 
 ### Primary Interface: Slack Commands
-
-WebDeface Monitor's primary operational interface is Slack-based, designed for real-time team collaboration and response:
+The primary operational interface is Slack-based.
 
 **Website Management:**
 ```slack
 # Add website for monitoring
-/webdeface website add https://example.com name:"Production Site" interval:300
+/webdeface website add https://example.com name:"Production Site"
 
 # List all monitored websites
-/webdeface website list status:active
+/webdeface website list
 
 # Get detailed website status
-/webdeface website status abc123
+/webdeface website status <website_id>
 
 # Remove website from monitoring
-/webdeface website remove abc123
-
-# Update website configuration
-/webdeface website update abc123 interval:600 priority:high
+/webdeface website remove <website_id>
 ```
 
 **Monitoring Operations:**
@@ -285,17 +236,8 @@ WebDeface Monitor's primary operational interface is Slack-based, designed for r
 # Stop all monitoring
 /webdeface monitoring stop
 
-# Pause specific website
-/webdeface monitoring pause abc123
-
-# Resume monitoring
-/webdeface monitoring resume abc123
-
 # Run immediate check
-/webdeface monitoring check abc123
-
-# View monitoring status
-/webdeface monitoring status
+/webdeface monitoring check <website_id>
 ```
 
 **System Management:**
@@ -305,18 +247,10 @@ WebDeface Monitor's primary operational interface is Slack-based, designed for r
 
 # View system metrics
 /webdeface system health
-
-# Monitor logs with filtering
-/webdeface system logs level:warning since:1h limit:50
-
-# View system configuration
-/webdeface system config
-
-# Performance insights
-/webdeface system metrics
 ```
 
 ### Secondary Interface: REST API
+The system also provides a REST API for programmatic access.
 
 **Authentication:**
 ```bash
@@ -339,454 +273,39 @@ curl -X POST \
      -H "Content-Type: application/json" \
      -d '{"url": "https://example.com", "name": "Example"}' \
      http://localhost:8000/api/v1/websites
-
-# Start monitoring
-curl -X POST -H "X-API-Key: $API_KEY" \
-     http://localhost:8000/api/v1/monitoring/start
-
-# Get system metrics
-curl -H "X-API-Key: $API_KEY" \
-     http://localhost:8000/api/v1/metrics
-```
-
-### Health Monitoring
-
-**System Health Endpoints:**
-- **Application Health**: `GET /health`
-- **Detailed Status**: `GET /api/v1/system/status`
-- **Performance Metrics**: `GET /api/v1/metrics`
-- **Qdrant Health**: `GET http://localhost:6333/health` (if enabled)
-
-**Infrastructure Monitoring:**
-```bash
-# Service status
-./run_infrastructure.sh status
-
-# Live log monitoring
-./run_infrastructure.sh logs --follow
-
-# Resource usage
-docker stats webdeface-monitor
 ```
 
 ## 🏗️ Architecture
 
-### System Overview
+The system is composed of several layers, including an interface layer (Slack, REST API), an orchestration layer (Scheduling, Scraping, Classification), a service layer, and a storage layer (SQLite, Qdrant).
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     WebDeface Monitor                          │
-│                   Enterprise Architecture                       │
-├─────────────────────────────────────────────────────────────────┤
-│                      Interface Layer                           │
-│  ┌─────────────┐ ┌──────────────┐ ┌─────────────────────────┐  │
-│  │ Slack Bot   │ │  REST API    │ │    Health Monitors      │  │
-│  │ (Primary)   │ │ (Secondary)  │ │    (Observability)      │  │
-│  │ Bolt + Socket│ │  FastAPI     │ │    Prometheus Ready     │  │
-│  └─────────────┘ └──────────────┘ └─────────────────────────┘  │
-├─────────────────────────────────────────────────────────────────┤
-│                   Orchestration Layer                          │
-│  ┌─────────────┐ ┌──────────────┐ ┌─────────────────────────┐  │
-│  │ Scheduling  │ │   Scraping   │ │    Classification       │  │
-│  │Orchestrator │ │ Orchestrator │ │    Orchestrator         │  │
-│  │(APScheduler)│ │ (Playwright) │ │    (Claude AI)          │  │
-│  └─────────────┘ └──────────────┘ └─────────────────────────┘  │
-├─────────────────────────────────────────────────────────────────┤
-│                      Service Layer                             │
-│  ┌─────────────┐ ┌──────────────┐ ┌─────────────────────────┐  │
-│  │   Browser   │ │ AI Classifier │ │     Notification        │  │
-│  │ (Playwright)│ │ (Claude API)  │ │   (Slack Integration)   │  │
-│  │ JS-Aware    │ │ Content Anal. │ │   Multi-Channel         │  │
-│  └─────────────┘ └──────────────┘ └─────────────────────────┘  │
-├─────────────────────────────────────────────────────────────────┤
-│                      Storage Layer                             │
-│  ┌─────────────┐ ┌──────────────┐                             │
-│  │   SQLite    │ │    Qdrant    │                             │
-│  │ (Metadata   │ │  (Vectors &  │                             │
-│  │  & State)   │ │  Similarity) │                             │
-│  └─────────────┘ └──────────────┘                             │
-└─────────────────────────────────────────────────────────────────┘
-```
+For a detailed breakdown of the architecture, see **[`docs/SITE_CHANGE_ANALYSIS_ARCHITECTURE.md`](docs/SITE_CHANGE_ANALYSIS_ARCHITECTURE.md)**.
 
-### Component Architecture
+## 🔍 Troubleshooting
 
-**Interface Layer:**
-- **Slack Bot** (Primary): Bolt framework with Socket Mode, slash commands, interactive components
-- **REST API** (Secondary): FastAPI with OpenAPI documentation and API key authentication
-- **Health Monitors**: Comprehensive observability with Prometheus metrics support
+### Service Won't Start
+- **Port already in use:** Check if another application is using port 8000.
+- **Missing environment variables:** Ensure all required variables in `.env` are set.
 
-**Orchestration Layer:**
-- **Scheduling Orchestrator**: APScheduler with cron-based monitoring and job management
-- **Scraping Orchestrator**: Playwright coordination with JavaScript rendering and dynamic content support
-- **Classification Orchestrator**: Claude AI pipeline with confidence scoring and threat analysis
+### Slack Notifications Not Working
+- **Invalid bot token:** Double-check your `SLACK_BOT_TOKEN` and `SLACK_APP_TOKEN`.
+- **Missing bot permissions:** Ensure the bot has the required OAuth scopes in the Slack App configuration.
+- **Channel access:** Make sure the bot is invited to the channels you want to receive notifications in.
 
-**Service Layer:**
-- **Browser Engine**: Playwright with Chromium for JavaScript-aware content extraction
-- **AI Classifier**: Claude API integration with sophisticated content analysis and threat detection
-- **Notification System**: Multi-channel alerting with Slack integration and configurable routing
-
-**Storage Layer:**
-- **SQLite Database**: Persistent metadata, scan history, configuration, and application state
-- **Qdrant Vector DB**: Optional semantic similarity analysis and advanced pattern recognition
-
-### Data Flow
-
-1. **Schedule Activation** → Scheduling Orchestrator triggers monitoring jobs based on cron expressions
-2. **Content Acquisition** → Scraping Orchestrator extracts content using Playwright browser engine
-3. **Change Detection** → Compare extracted content against stored baselines with hash-based detection
-4. **AI Analysis** → Classification Orchestrator processes changes through Claude AI for threat assessment
-5. **Alert Generation** → Notification system routes alerts through configured Slack channels and users
-6. **Data Persistence** → Results stored in SQLite with optional vector embeddings in Qdrant
-
-### Security Architecture
-
-- **Authentication**: Simple API key-based authentication with role-based access control
-- **Secrets Management**: Environment-based credential storage with container secrets support
-- **Network Security**: Container isolation with minimal port exposure and internal service communication
-- **Data Protection**: Encrypted storage support with automated backup capabilities
-
-## 🧪 Testing
-
-**Test Categories & Coverage:**
-
-| Component | Test Coverage | Status | Description |
-|-----------|---------------|---------|-------------|
-| **Scraper** | Comprehensive | ✅ | Browser automation, content extraction, hashing |
-| **Classifier** | Comprehensive | ✅ | AI pipeline, vectorization, feedback systems |
-| **Scheduler** | Comprehensive | ✅ | Job management, orchestration, monitoring |
-| **API** | Comprehensive | ✅ | REST endpoints, authentication, middleware |
-| **CLI** | Comprehensive | ✅ | Command interface, argument parsing |
-| **Slack Integration** | Comprehensive | ✅ | Bot handlers, commands, permissions |
-| **Storage** | Comprehensive | ✅ | Database operations, SQLite, Qdrant |
-
-### Running Tests
-
-**Basic Test Execution:**
-```bash
-# Run full test suite
-pytest
-
-# Run with verbose output
-pytest -v
-
-# Run with coverage reporting
-pytest --cov=src/webdeface --cov-report=html
-```
-
-**Test Categories:**
-```bash
-# Unit tests only
-pytest -m "unit"
-
-# Integration tests only
-pytest -m "integration"
-
-# Run specific component tests
-pytest tests/test_scraper_components.py
-pytest tests/test_classifier_components.py
-pytest tests/test_scheduler_components.py
-```
-
-**Development Testing:**
-```bash
-# Run tests with infrastructure script
-./run_infrastructure.sh test
-
-# Fast feedback loop (exclude slow tests)
-pytest -m "not slow"
-
-# Test specific modules
-pytest tests/test_api_interface.py -v
-```
-
-### Test Infrastructure Features
-
-**Mock Management:**
-- **Database Isolation**: Each test runs with clean database state
-- **External API Mocking**: Claude AI, Slack API, and HTTP requests are mocked
-- **File System Mocking**: Temporary directories for test data
-- **Async Support**: Full async/await support with proper fixture management
-
-**Configuration Testing:**
-- **Settings Validation**: Comprehensive configuration validation testing
-- **Environment Simulation**: Multiple environment configuration testing
-- **Error Handling**: Comprehensive error scenario coverage
-
-**Performance & Reliability:**
-- **Fast Test Execution**: Optimized test suite with parallel execution support
-- **Deterministic Results**: Consistent test outcomes across environments
-- **Comprehensive Coverage**: All critical code paths tested
-
-## 🛠️ Infrastructure Management
-
-The [`run_infrastructure.sh`](run_infrastructure.sh) script provides comprehensive lifecycle management:
-
-### Service Management
-
-**Start Services:**
-```bash
-# Basic deployment
-./run_infrastructure.sh start
-
-# Production with vector database
-./run_infrastructure.sh start --qdrant
-
-# Foreground mode for debugging
-./run_infrastructure.sh start --foreground
-```
-
-**Control Operations:**
-```bash
-# Graceful shutdown
-./run_infrastructure.sh stop
-
-# Restart with configuration
-./run_infrastructure.sh restart --qdrant
-
-# Service status and health
-./run_infrastructure.sh status
-```
-
-**Monitoring & Logs:**
-```bash
-# Monitor all services
-./run_infrastructure.sh logs
-
-# Follow specific service
-./run_infrastructure.sh logs webdeface --follow
-
-# Container shell access
-./run_infrastructure.sh shell webdeface
-```
-
-### Maintenance Operations
-
-**Image Management:**
-```bash
-# Rebuild images
-./run_infrastructure.sh build
-
-# Force rebuild without cache
-./run_infrastructure.sh build --no-cache
-
-# Update to latest images
-./run_infrastructure.sh update
-```
-
-**Data Management:**
-```bash
-# Create timestamped backup
-./run_infrastructure.sh backup
-
-# Restore from backup
-./run_infrastructure.sh restore /path/to/backup.tar.gz
-
-# Cleanup Docker resources
-./run_infrastructure.sh cleanup
-```
-
-**Development Support:**
-```bash
-# Development mode with hot-reload
-./run_infrastructure.sh dev --qdrant
-
-# Run comprehensive test suite
-./run_infrastructure.sh test
-
-# Development with debugging
-./run_infrastructure.sh dev --debug
-```
-
-## 👨‍💻 Development
-
-### Development Environment
-
-**Setup:**
-```bash
-git clone https://github.com/your-org/webdeface-monitor.git
-cd webdeface-monitor
-
-# Virtual environment
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# Development installation
-pip install -e ".[dev]"
-playwright install --with-deps chromium
-
-# Pre-commit hooks
-pre-commit install
-```
-
-**Development Server:**
-```bash
-# Infrastructure script (recommended)
-./run_infrastructure.sh dev --qdrant
-
-# Manual API server
-uvicorn src.webdeface.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-### Code Quality
-
-**Testing:**
-```bash
-# See comprehensive testing documentation above
-# Quick reference:
-pytest                    # Full test suite
-pytest -v                # Verbose output
-pytest --cov=src/webdeface --cov-report=html  # Coverage report
-```
-> 📋 **See [Testing Section](#-testing)** for comprehensive test documentation, current status, and architectural improvements.
-
-**Linting & Formatting:**
-```bash
-# Format code
-black src/ tests/
-
-# Linting
-ruff check src/ tests/
-
-# Type checking
-mypy src/
-
-# All quality checks
-pre-commit run --all-files
-```
-
-### Project Structure
-
-```
-webdeface-monitor/
-├── src/webdeface/           # Application source code
-│   ├── api/                 # FastAPI application and routes
-│   ├── notification/        # Slack integration and alerting
-│   │   └── slack/          # Slack Bot implementation
-│   ├── classifier/          # AI classification pipeline
-│   ├── scheduler/           # Job scheduling and orchestration
-│   ├── scraper/             # Web scraping and browser automation
-│   ├── storage/             # Database and storage interfaces
-│   ├── config/              # Configuration management
-│   └── utils/               # Shared utilities and helpers
-├── tests/                   # Comprehensive test suite
-├── docs/                    # Additional documentation
-├── docker-compose.yml       # Container orchestration
-├── Dockerfile               # Multi-stage container build
-├── run_infrastructure.sh    # Infrastructure management script
-└── pyproject.toml          # Python project configuration
-```
-
-## 🚀 Production Considerations
-
-### Scaling & Performance
-
-**High Availability:**
-```yaml
-# docker-compose.prod.yml
-services:
-  webdeface:
-    deploy:
-      replicas: 3
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-```
-
-**Resource Optimization:**
-```yaml
-services:
-  webdeface:
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-          cpus: '1.0'
-        reservations:
-          memory: 1G
-          cpus: '0.5'
-```
-
-### Security Hardening
-
-**Container Security:**
-```bash
-# Non-root user in container
-USER app
-
-# Read-only filesystem
-docker run --read-only --tmpfs /tmp webdeface-monitor
-
-# Network restrictions
-networks:
-  internal:
-    internal: true
-```
-
-**Secrets Management:**
-```bash
-# Docker secrets
-echo "sk-ant-your-key" | docker secret create claude_api_key -
-docker service update --secret-add claude_api_key webdeface
-```
-
-### Backup & Recovery
-
-**Automated Backups:**
-```bash
-# Scheduled backups
-crontab -e
-0 2 * * * /path/to/webdeface/run_infrastructure.sh backup
-
-# Remote backup storage
-./run_infrastructure.sh backup
-aws s3 cp ./backups/latest.tar.gz s3://webdeface-backups/
-```
-
-**Disaster Recovery:**
-```bash
-# Restore from backup
-./run_infrastructure.sh restore ./backups/webdeface-backup-20241201.tar.gz
-
-# Verify restoration
-./run_infrastructure.sh status
-curl http://localhost:8000/health
-```
-
-### Monitoring & Observability
-
-**Metrics & Logging:**
-```bash
-# Prometheus metrics
-curl http://localhost:8000/api/v1/metrics/prometheus
-
-# Structured logging
-./run_infrastructure.sh logs | jq '.level, .message'
-
-# Performance monitoring
-docker stats webdeface-monitor
-```
+For more help, see the **[`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)** guide.
 
 ## 📚 Documentation Links
 
-**Core Documentation:**
-- **[API Documentation](docs/API.md)** - Complete REST API reference and examples
-- **[Configuration Guide](docs/CONFIGURATION.md)** - Detailed configuration options and best practices
-- **[Slack App Setup Guide](docs/SLACK_APP_SETUP.md)** - In-depth Slack application configuration instructions
-- **[Slack Commands](docs/SLACK_COMMANDS.md)** - Comprehensive Slack interface documentation
-- **[Site Change Analysis Architecture](docs/SITE_CHANGE_ANALYSIS_ARCHITECTURE.md)** - Detailed system and algorithm architecture
-- **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+For deeper usage and advanced topics, refer to the documentation in the `docs/` directory:
 
-**Online Resources:**
-- **API Documentation**: http://localhost:8000/docs (Interactive OpenAPI)
-- **Health Dashboard**: http://localhost:8000/health
-- **Qdrant Dashboard**: http://localhost:6333/dashboard (if enabled)
+- **[API Documentation](docs/API.md)** - Complete REST API reference and examples.
+- **[CLI Reference](docs/CLI.md)** - Guide for the command-line interface.
+- **[Configuration Guide](docs/CONFIGURATION.md)** - Detailed configuration options and best practices.
+- **[Data Models](docs/DATA_MODELS.md)** - Overview of the database schema.
+- **[Site Change Analysis Architecture](docs/SITE_CHANGE_ANALYSIS_ARCHITECTURE.md)** - Detailed system and algorithm architecture.
+- **[Slack Integration Guide](docs/SLACK_INTEGRATION.md)** - In-depth Slack application configuration instructions.
+- **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Common issues and solutions.
 
 ---
 
-**Version**: 1.0.0  
+**Version**: 1.0.0

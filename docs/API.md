@@ -1143,7 +1143,7 @@ Configure webhooks to receive real-time notifications about alerts and system ev
 ## 📞 Support
 
 - **Documentation:** [Full API Documentation](http://localhost:8000/docs)
-- **Issues:** [GitHub Issues](https://github.com/your-org/webdeface-monitor/issues)
+- **Issues:** [GitHub Issues](https://github.com/bcdannyboy/webdeface/issues)
 - **Email:** api-support@your-org.com
 
 **Interactive API Documentation available at:**
