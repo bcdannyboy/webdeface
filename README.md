@@ -111,36 +111,7 @@ brew install --cask docker
 
 ### Slack Bot Setup
 
-1. **Create Slack App** at https://api.slack.com/apps
-   - Name: "WebDeface Monitor"
-   - Development Slack workspace selection
-
-2. **Configure Bot Permissions** (OAuth & Permissions):
-   ```
-   - chat:write (send messages and notifications)
-   - commands (slash command support)
-   - channels:read (channel access)
-   - users:read (user information)
-   ```
-
-3. **Enable Socket Mode**:
-   ```
-   - Generate App-Level Token with connections:write scope
-   - Copy as SLACK_APP_TOKEN
-   ```
-
-4. **Add Slash Command**:
-   ```
-   Command: /webdeface
-   Description: WebDeface Monitor controls
-   Usage Hint: [action] [parameters]
-   ```
-
-5. **Install to Workspace**:
-   ```
-   - Copy Bot User OAuth Token (SLACK_BOT_TOKEN)
-   - Copy Signing Secret (SLACK_SIGNING_SECRET)
-   ```
+For a complete, step-by-step walkthrough—including OAuth scopes, Socket Mode tokens, slash commands, and environment variable recommendations—refer to the dedicated guide in **[`docs/SLACK_APP_SETUP.md`](docs/SLACK_APP_SETUP.md)**.
 
 ## 🚀 Deployment
 
@@ -806,7 +777,9 @@ docker stats webdeface-monitor
 **Core Documentation:**
 - **[API Documentation](docs/API.md)** - Complete REST API reference and examples
 - **[Configuration Guide](docs/CONFIGURATION.md)** - Detailed configuration options and best practices
+- **[Slack App Setup Guide](docs/SLACK_APP_SETUP.md)** - In-depth Slack application configuration instructions
 - **[Slack Commands](docs/SLACK_COMMANDS.md)** - Comprehensive Slack interface documentation
+- **[Site Change Analysis Architecture](docs/SITE_CHANGE_ANALYSIS_ARCHITECTURE.md)** - Detailed system and algorithm architecture
 - **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Common issues and solutions
 
 **Online Resources:**
